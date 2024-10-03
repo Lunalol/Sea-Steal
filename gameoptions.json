@@ -1,1 +1,53 @@
-{}
+{
+	"100": {
+		"name": "\u2694 DUEL mode \u2694",
+		"values": {
+			"0":
+					{
+						"name": "Off"
+					},
+			"1":
+					{
+						"name": "On",
+						"description": "Players play the game twice, swapping factions",
+						"tmdisplay": "\u2694 DUEL mode ON \u2694"
+					}
+		},
+		"displaycondition": [
+			{
+				"type": "maxplayers",
+				"value": 0
+			}
+		],
+		"startcondition": {
+			"1": [{
+					"type": "maxplayers",
+					"value": 0,
+					"message": "NOT IMPLEMENTED"
+				}]
+		},
+		"PJL notdisplayedmessage": "Duel mode option is only available for a two players game"
+	},
+	"101": {
+		"name": "Factions",
+		"values": [
+			{
+				"name": "Factions are randomly chosen"
+			},
+			{
+				"name": "Table administrator will play Indigenous",
+				"description": "Admin will play the Native people of the Caribbean"
+			},
+			{
+				"name": "Table administrator will play Spanish",
+				"description": "Admin will play the Spanish conquistadors"
+			}
+		],
+		"displaycondition": [
+			{
+				"type": "maxplayers",
+				"value": 2
+			}
+		]
+	}
+}

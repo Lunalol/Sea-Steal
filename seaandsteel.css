@@ -1,72 +1,117 @@
-/**
- *------
- * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
- * seaandsteel implementation : © <Your name here> <Your email address here>
- *
- * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
- * See http://en.boardgamearena.com/#!doc/Studio for more information.
- * -----
- *
- * seaandsteel.css
- *
- * seaandsteel stylesheet
- *
- */
+div,img {
+	user-select: none;
+}
 
-/*
-    This is the CSS stylesheet of your game User Interface.
-    
-    Styles defined on this file will be applied to the HTML elements you define in your
-    HTML template (seaandsteel_seaandsteel.tpl), and to HTML elements you create dynamically
-    (in seaandsteel.js).
-    
-    Usually, you are using CSS to:
-    
-    1°) define the overall layout of your game
-        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
-
-    2°) create your CSS-sprites:
-        All images of your games should be gathered into a small number of image files. Then, using
-        background-image and background-position CSS properties, you create HTML blocks that can 
-        display these images correctly (see example below).
-    
-    3°) ... anything else:
-        It is really easy to add and remove CSS classes dynamically from your Javascript with
-        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
-        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
-        very often, using CSS classes for the logic of your user interface allow you to do complex
-        thing easily.
-        
-        
-     Note: on the production platform, this file will be compressed and comments will be removed.
-           Consequently, don't hesitate to put as many comments as necessary.
-*/
-
-
-/* Note: you must not use any @import directive */
-
-
-/********* You can start writing your CSS below this line: **********/
-
-
-/*
-    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
-
-    .white_token {
-        background-image: url('img/tokens.png');
-        background-position: 0px 0px;
-    }
-    .black_token {
-        background-image: url('img/tokens.png');
-        background-position: -20px 0px;
-    }
-    .token {
-        width: 20px;
-        height: 20px;
-        background-repeat: none;
-    }
-*/
-
-
-
-
+#SSplayArea {
+	display: flex;
+	height: 75vh;
+}
+#SSscrollArea {
+	flex: 1 1 50%;
+    overflow: overlay;
+	/*	border-radius: 50px;*/
+	border: 5px groove white;
+	box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+}
+#SSboard {
+	position: relative;
+	background-image: url('img/board.jpg');
+	width: 2658px;
+	height: 2599px;
+	transform-origin: left top;
+}
+/*********/
+/* Units */
+/*********/
+.SSunit {
+	background-image: url('img/units.png');
+	background-size: 1400%;
+	transition: left 1s, top 1s, transform .25s;
+}
+#SSboard>.SSunit {
+	position: absolute;
+	width: 4%;
+	height: 4%;
+}
+#SSboard>.SSunit:hover {
+	/*	transform: scale(200%);*/
+	transition: transform .5s;
+	z-index: 10;
+}
+/********************/
+/* Indigenous Units */
+/********************/
+.SSunit[data-faction='Indigenous'] {
+	background-position-y: 100%;
+}
+.SSunit[data-faction='Indigenous'][data-type='Leader'] {
+	background-position-x: CALC(0% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Caciques'] {
+	background-position-x: CALC(200% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Naborias'] {
+	background-position-x: CALC(400% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Calinagos'] {
+	background-position-x: CALC(600% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Tamas'] {
+	background-position-x: CALC(800% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Captains'] {
+	background-position-x: CALC(1000% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Troops'] {
+	background-position-x: CALC(1200% / 13);
+}
+/*****************/
+/* Spanish Units */
+/*****************/
+.SSunit[data-faction='Spanish'] {
+	background-position-y: 0%;
+}
+.SSunit[data-faction='Spanish'][data-type='Leader'] {
+	background-position-x: CALC(0% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Cavalry'] {
+	background-position-x: CALC(200% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Arquebusiers'] {
+	background-position-x: CALC(400% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Swordmen'] {
+	background-position-x: CALC(600% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Pawns'] {
+	background-position-x: CALC(800% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Scribes'] {
+	background-position-x: CALC(1000% / 13);
+}
+/*****************/
+/* Cards */
+/*****************/
+.SSfate {
+	flex: 0 1 250px;
+	margin: auto 5px;
+	background-image: url('img/fate.png');
+	background-size: 300%;
+	background-repeat: no-repeat;
+	aspect-ratio: 300/419;
+	border: 5px white solid;
+	border-radius: 20px;
+}
+.SSfate[fate='0'] {
+	visibility: hidden;
+}
+.SSfate[fate='1'] {
+	background-position-x: 0%;
+}
+.SSfate[fate='2'] {
+	background-position-x: 50%;
+}
+.SSfate[fate='3'] {
+	background-position-x: 100%;
+}

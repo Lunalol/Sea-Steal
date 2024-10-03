@@ -1,35 +1,16 @@
+CREATE TABLE IF NOT EXISTS `factions` (
+	`faction` ENUM ('Indigenous', 'Spanish'), `player_id` INT, `status` JSON
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- ------
--- BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
--- seaandsteel implementation : © <Your name here> <Your email address here>
--- 
--- This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
--- See http://en.boardgamearena.com/#!doc/Studio for more information.
--- -----
+CREATE TABLE IF NOT EXISTS `units` (
+	`id` INT(2) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	`faction` ENUM ('Indigenous', 'Spanish'),
+	`type` ENUM('Leader', 'Cavalry', 'Arquebusiers', 'Swordmen', 'Pawns', 'Scribes', 'Caciques', 'Naborias', 'Calinagos', 'Tamas', 'Captains', 'Troops'),
+	`location` VARCHAR(20), `status` JSON
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- dbmodel.sql
-
--- This is the file where you are describing the database schema of your game
--- Basically, you just have to export from PhpMyAdmin your table structure and copy/paste
--- this export here.
--- Note that the database itself and the standard tables ("global", "stats", "gamelog" and "player") are
--- already created and must not be created here
-
--- Note: The database schema is created from this file when the game starts. If you modify this file,
---       you have to restart a game to see your changes in database.
-
--- Example 1: create a standard "card" table to be used with the "Deck" tools (see example game "hearts"):
-
--- CREATE TABLE IF NOT EXISTS `card` (
---   `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
---   `card_type` varchar(16) NOT NULL,
---   `card_type_arg` int(11) NOT NULL,
---   `card_location` varchar(16) NOT NULL,
---   `card_location_arg` int(11) NOT NULL,
---   PRIMARY KEY (`card_id`)
--- ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
-
-
--- Example 2: add a custom field to the standard "player" table
--- ALTER TABLE `player` ADD `player_my_custom_field` INT UNSIGNED NOT NULL DEFAULT '0';
-
+CREATE TABLE IF NOT EXISTS `counters` (
+	`id` INT(2) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	`type` ENUM('turn', 'VP', 'impulseSpanish', 'impulseNatives', 'royalSupport', 'divineGrace', 'natureSpirit', 'palisades', 'citadels', 'shipsWear', 'attestor', 'area'),
+	`location` VARCHAR(20), `status` JSON
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
