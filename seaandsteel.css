@@ -1,25 +1,69 @@
-div,img {
+#overall-content div,img {
 	user-select: none;
+}
+.midSizeDialog {
+	text-align: justify;
+}
+
+.SSphase {
+	display: block;
+	padding: 5px;
+	border-radius: 5px;
+    background-color: #fcb062;
+	color: black;
+    font-size: 14pt;
+    font-weight: bold;
+}
+.SSsubphase {
+	display: block;
+	padding: 5px;
+	border-radius: 5px;
+    background-color: #fcb062;
+	color: black;
+    font-size: 12pt;
+    font-weight: bold;
+}
+.SSimpulse {
+	display: block;
+	padding: 5px;
+	border-radius: 5px;
+    background-color: #fcb062;
+	color: black;
+    font-size: 10pt;
+    font-weight: bold;
 }
 
 #SSplayArea {
 	display: flex;
-	height: 75vh;
+	height: 80vh;
 }
 #SSscrollArea {
+    position: relative;
 	flex: 1 1 50%;
-    overflow: overlay;
-	/*	border-radius: 50px;*/
+    overflow: scroll;
 	border: 5px groove white;
 	box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
 }
 #SSboard {
-	position: relative;
+	position: absolute;
 	background-image: url('img/board.jpg');
 	width: 2658px;
 	height: 2599px;
 	transform-origin: left top;
+}
+#SScanvas{
+	position: absolute;
+	pointer-events: none;
+}
+#SSbackground {
+	background-image: url('img/board.jpg');
+}
+.SSaction {
+	position: absolute;
+	width: 10%;
+	height: 10%;
+	border-radius: 50%;
 }
 /*********/
 /* Units */
@@ -27,17 +71,30 @@ div,img {
 .SSunit {
 	background-image: url('img/units.png');
 	background-size: 1400%;
-	transition: left 1s, top 1s, transform .25s;
+	transition: left 1s, top 1s, transform .25s, z-index .25s;
+	aspect-ratio: 1;
+	-webkit-transform: translateZ(0);
+	-webkit-perspective: 1000;
+	-webkit-backface-visibility: hidden;
 }
 #SSboard>.SSunit {
 	position: absolute;
 	width: 4%;
-	height: 4%;
-}
-#SSboard>.SSunit:hover {
-	/*	transform: scale(200%);*/
-	transition: transform .5s;
 	z-index: 10;
+}
+#SSboard>.SSunit.SSdisabled {
+	filter: grayscale(1);
+	transition: transform .25s, box-shadow .25s;
+}
+#SSboard>.SSunit:not(.SSdisabled):hover {
+	filter: drop-shadow(2px 4px 6px black);
+	transition: transform .5s, filter .5s, z-index .5s;
+	z-index: 100 !important;
+}
+.log .SSunit {
+	display: inline-block;
+	height: 50px;
+	vertical-align: middle;
 }
 /********************/
 /* Indigenous Units */
@@ -48,23 +105,44 @@ div,img {
 .SSunit[data-faction='Indigenous'][data-type='Leader'] {
 	background-position-x: CALC(0% / 13);
 }
+.SSunit[data-faction='Indigenous'][data-type='Leader'].SSreduced {
+	background-position-x: CALC(100% / 13);
+}
 .SSunit[data-faction='Indigenous'][data-type='Caciques'] {
 	background-position-x: CALC(200% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Caciques'].SSreduced {
+	background-position-x: CALC(300% / 13);
 }
 .SSunit[data-faction='Indigenous'][data-type='Naborias'] {
 	background-position-x: CALC(400% / 13);
 }
+.SSunit[data-faction='Indigenous'][data-type='Naborias'].SSreduced {
+	background-position-x: CALC(500% / 13);
+}
 .SSunit[data-faction='Indigenous'][data-type='Calinagos'] {
 	background-position-x: CALC(600% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Calinagos'].SSreduced {
+	background-position-x: CALC(700% / 13);
 }
 .SSunit[data-faction='Indigenous'][data-type='Tamas'] {
 	background-position-x: CALC(800% / 13);
 }
+.SSunit[data-faction='Indigenous'][data-type='Tamas'].SSreduced {
+	background-position-x: CALC(900% / 13);
+}
 .SSunit[data-faction='Indigenous'][data-type='Captains'] {
 	background-position-x: CALC(1000% / 13);
 }
+.SSunit[data-faction='Indigenous'][data-type='Captains'].SSreduced {
+	background-position-x: CALC(1100% / 13);
+}
 .SSunit[data-faction='Indigenous'][data-type='Troops'] {
 	background-position-x: CALC(1200% / 13);
+}
+.SSunit[data-faction='Indigenous'][data-type='Troops'].SSreduced {
+	background-position-x: CALC(1300% / 13);
 }
 /*****************/
 /* Spanish Units */
@@ -75,43 +153,189 @@ div,img {
 .SSunit[data-faction='Spanish'][data-type='Leader'] {
 	background-position-x: CALC(0% / 13);
 }
+.SSunit[data-faction='Spanish'][data-type='Leader'].SSreduced {
+	background-position-x: CALC(100% / 13);
+}
 .SSunit[data-faction='Spanish'][data-type='Cavalry'] {
 	background-position-x: CALC(200% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Cavalry'].SSreduced {
+	background-position-x: CALC(300% / 13);
 }
 .SSunit[data-faction='Spanish'][data-type='Arquebusiers'] {
 	background-position-x: CALC(400% / 13);
 }
+.SSunit[data-faction='Spanish'][data-type='Arquebusiers'].SSreduced {
+	background-position-x: CALC(500% / 13);
+}
 .SSunit[data-faction='Spanish'][data-type='Swordmen'] {
 	background-position-x: CALC(600% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Swordmen'].SSreduced {
+	background-position-x: CALC(700% / 13);
 }
 .SSunit[data-faction='Spanish'][data-type='Pawns'] {
 	background-position-x: CALC(800% / 13);
 }
+.SSunit[data-faction='Spanish'][data-type='Pawns'].SSreduced {
+	background-position-x: CALC(900% / 13);
+}
 .SSunit[data-faction='Spanish'][data-type='Scribes'] {
 	background-position-x: CALC(1000% / 13);
+}
+.SSunit[data-faction='Spanish'][data-type='Scribes'].SSreduced {
+	background-position-x: CALC(1100% / 13);
 }
 /*****************/
 /* Cards */
 /*****************/
 .SSfate {
 	flex: 0 1 250px;
+	margin: 10px;
+}
+.SShand {
+	flex: 0 1 150px;
+	margin: 10px;
+}
+.SScard {
+	position: relative;
 	margin: auto 5px;
-	background-image: url('img/fate.png');
-	background-size: 300%;
+	background-image: url('img/cards.jpg');
+	background-size: 6300%;
 	background-repeat: no-repeat;
 	aspect-ratio: 300/419;
 	border: 5px white solid;
-	border-radius: 20px;
+	border-radius: 5%;
+	transform-origin: top;
+	transition: transform .25s, box-shadow .25s, filter .25s;
 }
-.SSfate[fate='0'] {
-	visibility: hidden;
+.SShand>.SScard {
+	margin-bottom: -75%;
 }
-.SSfate[fate='1'] {
-	background-position-x: 0%;
+.SShand>.SScard:nth-child(odd) {
+	transform: rotate(5deg);
 }
-.SSfate[fate='2'] {
-	background-position-x: 50%;
+.SShand>.SScard:nth-child(even) {
+	transform: rotate(-5deg);
 }
-.SSfate[fate='3'] {
-	background-position-x: 100%;
+.SShand>.SScard.SSselectable {
+	box-shadow: 0px 0px 5px 5px grey;
+}
+.SShand>.SScard.SSselected {
+	transform: scale(110%);
+	box-shadow: 0px 0px 10px 10px white;
+	z-index: 1;
+}
+.SShand>.SScard:hover {
+	transform: scale(125%);
+	transition: transform .5s, box-shadow .5s, filter .5s;
+	z-index: 1;
+}
+
+.SSunitContainer {
+	display: inline-flex;
+	vertical-align: middle;
+	margin: 0px 10px;
+	height: 75px;
+}
+.SSunitContainer>.SSunit {
+	margin: 5px;
+	transition: transform .25s, filter .25s;
+	filter: grayscale(1);
+}
+.SSunitContainer>.SSunit.SSremoved:before {
+	content: '❌';
+	font-size: 40px;
+	line-height: 75px;
+}
+.SSunitContainer>.SSunit.SSselected {
+	filter: none;
+	transition: transform .5s, filter .5s;
+}
+.SSunitContainer>.SSunit:not(.SSselected):hover {
+	filter: drop-shadow(2px 4px 6px black) grayscale(1);
+	transition: transform .5s, filter .5s;
+}
+.SSunitContainer>.SSunit.SSselected:hover {
+	filter: drop-shadow(2px 4px 6px black);
+	transition: transform .5s, filter .5s;
+}
+/********************/
+/* Counters */
+/********************/
+.SScounter {
+	background-image: url('img/counters.png');
+	background-size: 1000%;
+	transition: left 1s, top 1s, transform .25s;
+	aspect-ratio: 1;
+	-webkit-transform: translateZ(0);
+	-webkit-perspective: 1000;
+	-webkit-backface-visibility: hidden;
+}
+#SSboard>.SScounter {
+	position: absolute;
+	width: 4%;
+	z-index: 5;
+}
+#SSboard>.SScounter[data-type='palisades'] {
+	opacity: 75%
+}
+.SScounter:hover {
+	filter: drop-shadow(2px 4px 6px black);
+	transition: transform .5s, filter .5s;
+	z-index: 100;
+}
+.SScounter:focus
+{
+	transform: translate(60%,60%);
+	transition: transform .5s, filter .5s;
+}
+.log .SScounter {
+	display: inline-block;
+	height: 50px;
+	vertical-align: middle;
+}
+
+.SScounter[data-type='turn'] {
+	background-position-x: CALC(0% / 9);
+}
+.SScounter[data-type='VP'] {
+	background-position-x: CALC(100% / 9);
+}
+.SScounter[data-type='impulseSpanish'] {
+	background-position-x: CALC(200% / 9);
+	transform: translate(-25%,-25%);
+}
+.SScounter[data-type='impulseIndigenous'] {
+	background-position-x: CALC(300% / 9);
+	transform: translate(25%,25%);
+}
+.SScounter[data-type='royalSupport'] {
+	background-position-x: CALC(200% / 9);
+}
+.SScounter[data-type='divineGrace'] {
+	background-position-x: CALC(400% / 9);
+}
+.SScounter[data-type='natureSpirits'] {
+	background-position-x: CALC(500% / 9);
+}
+.SScounter[data-type='palisades'] {
+	background-position-x: CALC(600% / 9);
+}
+.SScounter[data-type='citadels'] {
+	background-position-x: CALC(700% / 9);
+}
+.SScounter[data-type='shipsWear'] {
+	background-position-x: CALC(800% / 9);
+}
+.SScounter[data-type='attestor'] {
+	background-position-x: CALC(900% / 9);
+}
+
+.SSdice {
+    display:inline-block;
+    vertical-align:middle;
+    width:30px;
+    height:30px;
+    background-image:url('img/dices.png');
 }

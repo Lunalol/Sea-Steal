@@ -4,14 +4,27 @@
  * @author Lunalol - PERRIN Jean-Luc
  *
  */
-declare(strict_types=1);
+//declare(strict_types=1);
 
+define("ATTACK", 0);
+define("DEFENSE", 1);
+define("COMBINED", 2);
+//
+define("DIVINEGRACE", 1 << 0);
+define("NATURESPIRITS", 1 << 1);
+define("NAVALDIFFICULTIES", 1 << 2);
+define("INDIGENOUSINTERNALCONFLIT", 1 << 3);
+//
 define("COLOMBUS", 0);
+//
+define("TURN", 110);
+define("FATE", 111);
 
 require_once(APP_GAMEMODULE_PATH . "module/table/table.game.php");
 require_once('modules/PHP/gameStates.php');
 require_once('modules/PHP/gameStateArguments.php');
 require_once('modules/PHP/gameStateActions.php');
+require_once('modules/PHP/events.php');
 require_once('modules/PHP/Players.php');
 require_once('modules/PHP/Factions.php');
 require_once('modules/PHP/Counters.php');
@@ -19,6 +32,7 @@ require_once('modules/PHP/Units.php');
 
 class seaandsteel extends Table
 {
+	use events;
 	use gameStates;
 	use gameStateArguments;
 	use gameStateActions;
@@ -27,7 +41,9 @@ class seaandsteel extends Table
 	{
 		parent::__construct();
 
-		$this->initGameStateLabels([]);
+		$this->initGameStateLabels([
+			'turn' => TURN, 'fate' => FATE
+		]);
 	}
 	public function getGameProgression()
 	{
@@ -39,11 +55,25 @@ class seaandsteel extends Table
 	}
 	protected function getAllDatas()
 	{
+		$player_id = intval(self::getCurrentPlayerId());
+//
 		$result = [];
 //
-		$result["players"] = $this->getCollectionFromDb("SELECT player_id, player_score score FROM player");
-		$result["units"] = Units::getAllDatas();
-		$result["counters"] = Counters::getAllDatas();
+		$result['players'] = $this->getCollectionFromDb("SELECT player_id, player_score score FROM player");
+		$result['factions'] = array_flip(Factions::getAllDatas());
+//
+		$result['turn'] = intval(self::getGameStateValue('turn'));
+		$result['fate'] = intval(self::getGameStateValue('fate'));
+//
+		$result['units'] = Units::getAllDatas();
+		$result['counters'] = Counters::getAllDatas();
+//
+		if (!self::isSpectator())
+		{
+			$faction = Factions::getFaction($player_id);
+			$result['hand'] = Factions::getStatus($faction, 'events');
+			$result['event'] = $this->globals->get("event/$faction");
+		}
 //
 		return $result;
 	}
@@ -63,8 +93,8 @@ class seaandsteel extends Table
 //
 // ONE player game
 //
-				Factions::create('Indigenous', $admin);
-				Factions::create('Spanish', $admin);
+				Factions::create(Factions::INDIGENOUS, $admin);
+				Factions::create(Factions::SPANISH, $admin);
 //
 				$players[$admin]['player_color'] = '000000';
 //
@@ -108,7 +138,7 @@ class seaandsteel extends Table
 					default: throw new BgaVisibleSystemException('Invalid factionsChoice: ' . $options[101]);
 				}
 //
-				foreach (['Indigenous', 'Spanish'] as $faction)
+				foreach ([Factions::INDIGENOUS, Factions::SPANISH] as $faction)
 				{
 					$ID = array_shift($IDs);
 					Factions::create($faction, $ID);
@@ -154,5 +184,26 @@ class seaandsteel extends Table
 			return;
 		}
 		throw new feException("Zombie mode not supported at this game state: \"{$state_name}\".");
+	}
+	function updateVP()
+	{
+		$counter = Counters::getByType('VP')[0];
+		$counter['location'] = max(0, min(Factions::VP(), 20));
+		Counters::setLocation($counter['id'], $counter['location']);
+//* -------------------------------------------------------------------------------------------------------- */
+		self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
+//* -------------------------------------------------------------------------------------------------------- */
+	}
+	function debug_scribe()
+	{
+		$units = array_filter(Units::getAllDatas(), fn($unit) => $unit['faction'] === Factions::SPANISH && $unit ['type'] === 'Leader');
+		if ($units)
+		{
+			$unit = array_pop($units);
+//* -------------------------------------------------------------------------------------------------------- */
+			self::notifyAllPlayers('placeUnit', '', ['unit' => Units::get(Units::create(Factions::SPANISH, 'Scribes', $unit['location']))]);
+			self::notifyAllPlayers('placeUnit', '', ['unit' => Units::get(Units::create(Factions::SPANISH, 'Scribes', $unit['location']))]);
+//* -------------------------------------------------------------------------------------------------------- */
+		}
 	}
 }
