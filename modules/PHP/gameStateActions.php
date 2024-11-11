@@ -25,7 +25,7 @@ trait gameStateActions
 		if ($this->gamestate->setPlayerNonMultiactive($player_id, 'eventResolutionPhase'))
 		{
 //* -------------------------------------------------------------------------------------------------------- */
-			self::notifyAllPlayers('msg', '${EVENTS}', ['EVENTS' => [$this->globals->get(Factions::INDIGENOUS), $this->globals->get(Factions::SPANISH)]]);
+			self::notifyAllPlayers('msg', '${EVENTS}', ['EVENTS' => [$this->globals->get("event/" . Factions::INDIGENOUS), $this->globals->get("event/" . Factions::SPANISH)]]);
 //* -------------------------------------------------------------------------------------------------------- */
 		}
 	}
@@ -36,9 +36,22 @@ trait gameStateActions
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		foreach (array_keys($units) as $unit) if (!array_key_exists($unit, $this->possible['units'])) throw new BgaVisibleSystemException("Invalid units: $unit");
 //
+		switch ($this->possible['event']['type'])
+		{
+			case 'any':
+				break;
+			case 'one':
+				if (sizeof(array_unique($units)) !== 1) throw new BgaUserException(self::_("You need to place units	 in an unique area"));
+				break;
+			case 'all':
+				if (array_diff($this->possible['event']['locations'], $units)) throw new BgaUserException(self::_("You need to place at least 1 unit in each area"));
+				break;
+			default: throw new BgaVisibleSystemException("Invalid event: " . $this->possible['event']['type']);
+		}
+//
 		foreach ($units as $id => $location)
 		{
-			if (!in_array($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
+			if (!in_array($location, $this->possible['event']['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
 //
 			$unit = Units::get($id);
 			$unit['location'] = $location;
@@ -49,13 +62,59 @@ trait gameStateActions
 		}
 		foreach (Units::getAtLocation('event') as $unit)
 		{
+			if ($unit['type'] === 'Leader') throw new BgaUserException(self::_("Leader must be placed in area"));
 			$unit['location'] = $unit['bag'];
 			Units::update($unit);
 		}
 //
+		self::eventResolve($this->globals->get("event/$faction"));
+//
+		$this->globals->set("recoveryValue/$faction", $this->CARDS[$this->possible['card']][0]);
 		$this->globals->delete("event/$faction");
 //
 		$this->gamestate->nextState('eventCombatPhase');
+	}
+	function actReinforcement(#[JsonParam] array|null $reinforcement, #[JsonParam] array|null $units)
+	{
+		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+//
+		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
+		if (!array_key_exists('bags', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
+		if (!array_key_exists('reinforcement', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
+		if (!array_key_exists('locations', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
+//
+		if (!is_null($reinforcement))
+		{
+			if (max($reinforcement) - min($reinforcement) > 1) throw new BgaVisibleSystemException("Not uniform select: " . json_encode($reinforcement));
+			if (array_sum($reinforcement) !== $this->possible['reinforcement']) throw new BgaVisibleSystemException("Invalid count: " . array_sum($reinforcement) . " <> " . $this->possible['reinforcement']);
+//
+			foreach ($reinforcement as $bag => $count) for ($i = 0; $i < $count; $i++) Units::draw($bag, 'event');
+		}
+//
+		if (!is_null($units))
+		{
+			foreach ($units as $id => $location)
+			{
+				if (!array_key_exists($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
+//
+				$unit = Units::get($id);
+				$unit['location'] = $location;
+				Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+				self::notifyAllPlayers('placeUnit', '', ['unit' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+			}
+			foreach (Units::getAtLocation('event') as $unit)
+			{
+				if ($unit['type'] === 'Leader') throw new BgaUserException(self::_("Leader must be placed in area"));
+				$unit['location'] = $unit['bag'];
+				Units::update($unit);
+			}
+//
+			$this->globals->delete("reinforcement/$faction");
+		}
+//
+		$this->gamestate->nextState('continue');
 	}
 	function actPass()
 	{
@@ -72,9 +131,9 @@ trait gameStateActions
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!in_array($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
 //
-		if (!Units::overstacking($location, $faction))
+		if (Units::overstacking($location, $faction) <= 3)
 		{
-			foreach ($this->possible['locations'] as $otherLocation) if (!Units::overstacking($otherLocation, $faction)) throw new BgaUserException(self::_("If a player has any over stacked areas, they must compulsory activate one of those areas during their Impulse Phase"));
+			foreach ($this->possible['locations'] as $otherLocation) if (Units::overstacking($otherLocation, $faction) > 3) throw new BgaUserException(self::_("If a player has any over stacked areas, they must compulsory activate one of those areas during their Impulse Phase"));
 		}
 //
 		$this->globals->set('activeArea', $location);
@@ -88,6 +147,8 @@ trait gameStateActions
 		if ($faction !== Factions::SPANISH) throw new BgaVisibleSystemException("Only Spanish faction can build palisades");
 		if (sizeof($locations) > 3) throw new BgaVisibleSystemException("You can only build up to 3 palisades");
 		if (!array_key_exists('palisades', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
+//
+		foreach ($this->possible['locations'] as $otherLocation) if (Units::overstacking($otherLocation, $faction) > 3) throw new BgaUserException(self::_("If a player has any over stacked areas, they must compulsory activate one of those areas during their Impulse Phase"));
 //
 		$palisades = Counters::getAtLocation('aside', 'palisades');
 //
@@ -118,8 +179,10 @@ trait gameStateActions
 		if (sizeof($locations) > 2) throw new BgaVisibleSystemException("You can only build up to 2 citadels");
 		if (!array_key_exists('citadels', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
 //
+		foreach ($this->possible['locations'] as $otherLocation) if (Units::overstacking($otherLocation, $faction) > 3) throw new BgaUserException(self::_("If a player has any over stacked areas, they must compulsory activate one of those areas during their Impulse Phase"));
+//
 		$citadels = Counters::getAtLocation('aside', 'citadels');
-		if (sizeof(Counters::getByType('citadels') >= 3)) throw new BgaUserException(self::_("A maximum of 3 Citadels can be in play at any time"));
+		if (sizeof(Counters::getByType('citadels')) >= 3) throw new BgaUserException(self::_("A maximum of 3 Citadels can be in play at any time"));
 //
 		foreach ($locations as $location)
 		{

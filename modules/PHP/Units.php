@@ -14,7 +14,7 @@ class Units extends APP_GameClass
 	}
 	static function getAllDatas(): array
 	{
-		return self::getCollectionFromDB("SELECT * FROM units WHERE location REGEXP '^[0-9]+$' ORDER BY faction,type,reduced");
+		return self::getCollectionFromDB("SELECT * FROM units WHERE location REGEXP '^[0-9]+$' OR location = 'prisonInSpain' ORDER BY faction,type,reduced");
 	}
 	static function get(int $id): array
 	{
@@ -51,18 +51,18 @@ class Units extends APP_GameClass
 	{
 		return self::getObjectListFromDB("SELECT DISTINCT location FROM units WHERE faction = '$faction' AND location REGEXP '^[0-9]+$'", true);
 	}
-	static function overstacking(string $location, string $faction): bool
+	static function overstacking(string $location, string $faction): int
 	{
-		return self::getUniqueValueFromDB("SELECT COUNT(*) FROM units WHERE location = '$location' AND faction = '$faction' AND type NOT IN ('Leader')") > 3;
+		return intval(self::getUniqueValueFromDB("SELECT COUNT(*) FROM units WHERE location = '$location' AND faction = '$faction' AND type NOT IN ('Leader')"));
 	}
 	static function retreat(array $unit): array
 	{
 		$locations = [];
 		if (is_numeric($unit['location']))
 		{
-			foreach ([(($unit['location'] + 1 - 1) % 15) + 1, (($unit['location'] - 1 - 1 + 15) % 15) + 1] as $to)
+			foreach ([(($unit['location'] + 1 - 1) % 15) + 1, (($unit['location'] - 1 - 1 + 15) % 15) + 1] as $adjacent)
 			{
-				if (sizeof(Units::getEnemyAtLocation($to, $unit['faction'])) === 0) $locations[] = $to;
+				if (sizeof(Units::getEnemyAtLocation($adjacent, $unit['faction'])) === 0) $locations[] = $adjacent;
 			}
 		}
 //

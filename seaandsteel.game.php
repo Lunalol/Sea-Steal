@@ -59,6 +59,8 @@ class seaandsteel extends Table
 //
 		$result = [];
 //
+		$result['CARDS'] = $this->CARDS;
+//
 		$result['players'] = $this->getCollectionFromDb("SELECT player_id, player_score score FROM player");
 		$result['factions'] = array_flip(Factions::getAllDatas());
 //
@@ -194,6 +196,16 @@ class seaandsteel extends Table
 		self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
 //* -------------------------------------------------------------------------------------------------------- */
 	}
+	function debug_board()
+	{
+		for ($i = 1; $i <= 6; $i++) Counters::create('turn', $i);
+		for ($i = 0; $i <= 10; $i++) Counters::create('royalSupport', $i);
+		for ($i = 0; $i <= 20; $i++) Counters::create('VP', $i);
+		for ($i = 0; $i <= 5; $i++) Counters::create('impulseIndigenous', $i);
+		for ($i = 0; $i <= 5; $i++) Counters::create('impulseSpanish', $i);
+		Counters::create('shipsWear', 'shipsWear');
+		Units::create(Factions::SPANISH, 'Leader', 'prisonInSpain');
+	}
 	function debug_scribe()
 	{
 		$units = array_filter(Units::getAllDatas(), fn($unit) => $unit['faction'] === Factions::SPANISH && $unit ['type'] === 'Leader');
@@ -203,6 +215,24 @@ class seaandsteel extends Table
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeUnit', '', ['unit' => Units::get(Units::create(Factions::SPANISH, 'Scribes', $unit['location']))]);
 			self::notifyAllPlayers('placeUnit', '', ['unit' => Units::get(Units::create(Factions::SPANISH, 'Scribes', $unit['location']))]);
+//* -------------------------------------------------------------------------------------------------------- */
+		}
+	}
+	function debug_shipsWear()
+	{
+//* -------------------------------------------------------------------------------------------------------- */
+		self::notifyAllPlayers('placeCounter', '', ['counter' => Counters::get(Counters::create('shipsWear', 'shipsWear'))]);
+//* -------------------------------------------------------------------------------------------------------- */
+	}
+	function debug_Columbus()
+	{
+		$columbus = Units::getColumbus();
+		if ($columbus)
+		{
+			$columbus['location'] = 'prisonInSpain';
+			Units::update($columbus);
+//* -------------------------------------------------------------------------------------------------------- */
+			self::notifyAllPlayers('placeUnit', '', ['unit' => $columbus]);
 //* -------------------------------------------------------------------------------------------------------- */
 		}
 	}

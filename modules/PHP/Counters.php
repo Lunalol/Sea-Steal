@@ -31,8 +31,9 @@ class Counters extends APP_GameClass
 		if (is_null($type)) return self::getCollectionFromDB("SELECT * FROM counters WHERE location = '$location'");
 		return self::getCollectionFromDB("SELECT * FROM counters WHERE location LIKE '$location' AND type = '$type'");
 	}
-	static function getByType(string $type): array
+	static function getByType(string $type, bool $aside = false): array
 	{
+		if ($aside) return self::getObjectListFromDB("SELECT * FROM counters WHERE type = '$type'");
 		return self::getObjectListFromDB("SELECT * FROM counters WHERE type = '$type' AND location <> 'aside'");
 	}
 	static function setLocation(int $id, string $location)

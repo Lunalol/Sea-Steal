@@ -12,10 +12,15 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 		constructor: function ()
 		{
 			console.log('seaandsteel constructor');
+//
 		},
 		setup: function (gamedatas)
 		{
 			console.log("Starting game setup", gamedatas);
+//
+// Translate
+//
+			this.BAGS = {yellow: _('Soldier'), red: _('Settler'), green: _('Taíno'), blue: _('Caribe'), white: _('Rebels')};
 //
 //			dojo.connect($('game_play_area'), 'click', () => this.restoreServerGameState());
 //
@@ -23,14 +28,30 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 			new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard", showDelay: 1000, hideDelay: 0, getContent: (node) =>
 				{
-					return `<div class='SScard' style='width:400px;background-position-x:${node.style['background-position-x']}'></div>`;
+					let html = '';
+					if (node.dataset.id in gamedatas.CARDS && node.dataset.id <= 18)
+					{
+						html += `<div style='display:flex;flex-direction:row;'>`;
+						html += `<div class='SScard' style='width:350px;background-position-x:${node.style['background-position-x']}'></div>`;
+						html += `<div style='width:300px;line-height:150%;'>`;
+						html += `<H2>${gamedatas.CARDS[node.dataset.id].title}</H2>`;
+						html += `<HR>`;
+						html += `<div style='margin: 10px 0px;'>${gamedatas.CARDS[node.dataset.id][1]}</div>`;
+						html += `<div style='margin: 10px 0px;'>${gamedatas.CARDS[node.dataset.id][2].replaceAll('. ', '.<BR>')}</div>`;
+						html += `<HR>`;
+						html += `<div><I>${dojo.string.substitute('Reinforcement value: ${value}', {value: gamedatas.CARDS[node.dataset.id][0]})}</I></div>`;
+						html += `</div>`;
+						html += `</div>`;
+					}
+					return html;
 				}});
 //
 			this.board = new Board(this);
 //
 // Fate card
 //
-			dojo.place(`<div class='SSfate'><div id='SSfate' tabindex='0' class='SScard'></div></div>`, 'player_boards');
+			dojo.place(`<div class='SSfate'><div class='SScard'></div></div>`, 'player_boards');
+			dojo.place(`<div class='SSfate'><div class='SScard'></div></div>`, 'SSboard');
 //
 			if ('fate' in gamedatas) this.fate(gamedatas.fate);
 //
@@ -150,6 +171,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					break;
 //
 				case 'eventCombatPhase':
+				case 'reinforcementCombatPhase':
 				case 'impulseCombatPhase':
 //
 					{
@@ -276,7 +298,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								dojo.toggleClass(node, 'SSselected');
 							}
 //
-							for (let location of args.locations)
+							for (let location of args.event.locations)
 							{
 								const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
 								dojo.style(node, {left: `${BOARD[location][0] - 5}%`, top: `${BOARD[location][1] - 5}%`});
@@ -306,6 +328,77 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								else this.confirmationDialog('All units are not deployed', () => this.bgaPerformAction('actEventResolution', {units: JSON.stringify(units)}));
 							});
 						}
+						break;
+//
+					case 'reinforcement':
+//
+						const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
+						for (let unit of Object.values(args.units))
+						{
+							const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+							dojo.connect(node, 'click', (event) => {
+								dojo.stopEvent(event);
+//									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
+								dojo.toggleClass(node, 'SSselected');
+								if (event.detail > 1) dojo.query('.SSunit', 'SSunitContainer').addClass('SSselected');
+							});
+							dojo.toggleClass(node, 'SSselected');
+						}
+//
+						for (let [location, priority] of Object.entries(args.locations))
+						{
+							const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+							dojo.style(node, {left: `${BOARD[location][0] - 5}%`, top: `${BOARD[location][1] - 5}%`, opacity: [1, .75, .5][priority]});
+							dojo.connect(node, 'click', (event) => {
+								dojo.stopEvent(event);
+								dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
+									dojo.addClass(this.placeUnit({id: node.dataset.id, faction: node.dataset.faction, type: node.dataset.type, location: location}), 'SSprovisional');
+									dojo.destroy(node);
+								});
+							});
+						}
+//
+						this.bags = {};
+						for (let bag of args.bags)
+						{
+							this.bags[bag] = 0;
+							this.addActionButton(`SSbag-${bag}`, `${this.BAGS[bag]} (${this.bags[bag]})`, (event) => {
+								dojo.stopEvent(event);
+								if (this.bags[bag] < 1 + Math.min(...Object.values(this.bags)) && Object.values(this.bags).reduce((s, v) => s + v, 0) < args.reinforcement)
+								{
+									this.bags[bag] += 1;
+									event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
+								}
+							});
+							if (['yellow', 'white'].includes(bag)) dojo.style(`SSbag-${bag}`, {background: bag, color: 'black'});
+							else dojo.style(`SSbag-${bag}`, {background: bag, color: 'white'});
+						}
+//
+						this.addActionButton('SSreset', _('Reset'), (event) => {
+							dojo.stopEvent(event);
+							this.restoreServerGameState();
+						}, null, false, 'gray');
+//
+						this.addActionButton('SSreinforcement', _('Reinforcement'), (event) => {
+							dojo.stopEvent(event);
+							if (Object.values(args.units).length === 0)
+							{
+								if (Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
+									this.bgaPerformAction('actReinforcement', {reinforcement: JSON.stringify(this.bags)});
+
+							}
+							else
+							{
+								const units = dojo.query('.SSunit.SSprovisional', 'SSboard').reduce((L, node) => {
+									L[node.dataset.id] = node.dataset.location;
+									return L;
+								}, {});
+								if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
+								const nodes = dojo.query('.SSunit', 'SSunitContainer');
+								if (nodes.length === 0) this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)});
+								else this.confirmationDialog('All units are not deployed', () => this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)}));
+							}
+						});
 						break;
 //
 					case 'action':
@@ -577,8 +670,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 				if ('EVENTS' in args)
 					args.EVENTS = `<div style='display:flex'>
-<div class='SScard' style='flex:1 1 auto;background-position-x:${args.EVENTS[0] / 62 * 100}%'></div>
-<div class='SScard' style='flex:1 1 auto;background-position-x:${args.EVENTS[1] / 62 * 100}%'></div>
+<div class='SScard' data-id='${args.EVENTS[0]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[0] / 53 * 100}%'></div>
+<div class='SScard' data-id='${args.EVENTS[1]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[1] / 53 * 100}%'></div>
 </div>
 `;
 				if ('DICE' in args)
@@ -597,12 +690,10 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			if (fate === 0 && this.gamedatas.turn === 1) fate = 52;
 			if (fate === 0 && this.gamedatas.turn > 1) fate = 53;
 //
-			const node = $(`SSfate`);
-			if (node)
-			{
+			dojo.query('.SSfate>.SScard').forEach((node) => {
 				node.dataset.id = fate;
-				dojo.setStyle(node, 'background-position-x', `${fate / 62 * 100}%`);
-			}
+				dojo.setStyle(node, 'background-position-x', `${fate / 53 * 100}%`);
+			});
 //
 		},
 		hand: function (hand)
@@ -615,7 +706,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 				if (node)
 				{
 					node.dataset.id = hand[i];
-					dojo.setStyle(node, 'background-position-x', `${hand[i] / 62 * 100}%`);
+					dojo.setStyle(node, 'background-position-x', `${hand[i] / 53 * 100}%`);
 				}
 			}
 		},
@@ -639,7 +730,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			node.dataset.location = unit.location;
 //
 			if (from !== unit.location) this.arrange(from, unit.faction);
-			if (isNaN(unit.location)) dojo.destroy(node);
+//
+			if (isNaN(unit.location) && unit.location !== 'prisonInSpain') dojo.destroy(node);
 			else this.arrange(unit.location, unit.faction);
 //
 			return node;
@@ -654,7 +746,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 				if (faction === 'Indigenous')
 					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] - 4 + (i - nodes.length / 2) * delta}%`, top: `${BOARD[location][1] - 0 + (i - nodes.length / 2) * delta}%`});
 				if (faction === 'Spanish')
-					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] + 1 + (i - nodes.length / 2) * delta}%`, top: `${BOARD[location][1] - 5 + (i - nodes.length / 2) * delta}%`});
+					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] + 1 + (i - nodes.length / 2) * delta}%`, top: `${BOARD[location][1] - 4 + (i - nodes.length / 2) * delta}%`});
 			}
 		},
 		overstacking: function (units)
@@ -671,9 +763,12 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 		{
 			console.log('placeCounter', counter);
 //
-			if (counter.location === 'aside') return;
-//
 			let node = $(`SScounter-${counter.id}`);
+			if (counter.location === 'aside')
+			{
+				if (node) node.remove();
+				return;
+			}
 //
 			switch (counter.type)
 			{
@@ -783,6 +878,21 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						}
 						dojo.style(node, {left: `${ATTESTOR[counter.location][0] - 2}%`, top: `${ATTESTOR[counter.location][1] - 2}%`});
 						this.addTooltipHtml(node.id, _('Attestor Marker'));
+					}
+					break;
+//
+				case 'shipsWear':
+//
+					{
+						if (!node)
+						{
+							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
+						}
+						dojo.style(node, {left: `${BOARD[counter.location][0] - 2}%`, top: `${BOARD[counter.location][1] - 2}%`});
+						this.addTooltip(node.id,
+								_('Naval difficulties: both players are affected but the Indigenous player is only affected if moving to a non-contiguous area by using rebel units. For each naval movement to a non-contiguous area (including drag and drop movements) the player should reduce one unit in the origin area from its full-strength to its reduced strength side or eliminate one unit if it is by its reduced side already.'),
+								_('Ships wear')
+								);
 					}
 					break;
 			}

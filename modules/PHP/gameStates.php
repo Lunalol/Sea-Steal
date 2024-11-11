@@ -144,7 +144,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('updateTurn', '<span class="SSphase">${LOG} ${turn}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Start of turn'), 'turn' => $turn]);
 //* -------------------------------------------------------------------------------------------------------- */
-		$counter = Counters::getByType('TURN')[0];
+		$counter = Counters::getByType('turn')[0];
 		$counter['location'] = $turn;
 		Counters::setLocation($counter['id'], $counter['location']);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -179,6 +179,14 @@ trait gameStates
 		$this->globals->set('fateCards', $fateCards);
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('fate', clienttranslate('A new fate card is revealed'), ['fate' => $fate]);
+//* -------------------------------------------------------------------------------------------------------- */
+		$this->globals->set('navalDifficulties', $navalDifficulties = boolval($this->CARDS[$fate][0] & NAVALDIFFICULTIES));
+//
+		$counter = Counters::getByType('shipsWear', true)[0];
+		$counter['location'] = $navalDifficulties ? 'shipsWear' : 'aside';
+		Counters::setLocation($counter['id'], $counter['location']);
+//* -------------------------------------------------------------------------------------------------------- */
+		self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
 //* -------------------------------------------------------------------------------------------------------- */
 		switch ($fate)
 		{
@@ -258,7 +266,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 //				self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => $this->CARDS[$card]['title']]);
 //* -------------------------------------------------------------------------------------------------------- */
-				$reinforcement = self::events($card);
+				$reinforcement = self::eventReinforcement($card);
 //
 				if ($faction === Factions::SPANISH && array_search('yellow', $reinforcement) !== false)
 				{
@@ -299,6 +307,46 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Recovery phase')]);
 //* -------------------------------------------------------------------------------------------------------- */
+			$this->globals->set('state', 'recoveryCombatPhase');
+//
+			$indigenous = $this->globals->get("recoveryValue/" . Factions::INDIGENOUS);
+			$spanish = $this->globals->get("recoveryValue/" . Factions::SPANISH);
+//
+			$this->globals->delete("recoveryValue/" . Factions::INDIGENOUS);
+			$this->globals->delete("recoveryValue/" . Factions::SPANISH);
+//
+			if ($indigenous > $spanish + 1)
+			{
+				$this->globals->set("reinforcement/" . Factions::INDIGENOUS, 1);
+				$this->globals->set("reinforcement/" . Factions::SPANISH, $indigenous - $spanish);
+			}
+			else if ($spanish > $indigenous + 1)
+			{
+				$this->globals->set("reinforcement/" . Factions::INDIGENOUS, $spanish - $indigenous);
+				$this->globals->set("reinforcement/" . Factions::SPANISH, 1);
+			}
+			else
+			{
+				$this->globals->set("reinforcement/" . Factions::INDIGENOUS, 2);
+				$this->globals->set("reinforcement/" . Factions::SPANISH, 2);
+			}
+//
+			return $this->gamestate->nextState('reinforcementPhase');
+		}
+		else $this->gamestate->nextState('impulsePhase');
+	}
+	function stReinforcement()
+	{
+		foreach ([Factions::INDIGENOUS, Factions::SPANISH] as $faction)
+		{
+			$reinforcement = $this->globals->get("reinforcement/$faction");
+			if ($reinforcement)
+			{
+				$this->gamestate->changeActivePlayer(Factions::getPlayer($faction));
+				self::giveExtraTime($this->getActivePlayerId());
+//
+				return $this->gamestate->nextState('reinforcement');
+			}
 		}
 		$this->gamestate->nextState('impulsePhase');
 	}

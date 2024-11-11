@@ -14,6 +14,7 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 			this.board = bgagame.board;
 			this.faction = args.faction;
 			this.location = args.location;
+			this.navalDifficulties = args.navalDifficulties;
 			this.units = args.units;
 //
 			for (let id of Object.keys(this.units)) this.units[id].moves = [];
@@ -30,23 +31,28 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 				const from = +node.dataset.location;
 				if (dojo.query(`.SSunit[data-location='${from}']:not([data-faction='${this.faction}'])`, 'SSboard').length === 0)
 				{
-					for (let to of [((from + 1 - 1) % 15) + 1, ((from - 1 - 1 + 15) % 15) + 1])
+					let possible = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+					if (this.faction !== 'Spanish' || this.navalDifficulties) possible = [((from + 1 - 1) % 15) + 1, ((from - 1 - 1 + 15) % 15) + 1];
+					for (let to of possible)
 					{
-						if (!locations.has(to))
+						if (from !== to)
 						{
-							locations.add(to);
+							if (!locations.has(to))
+							{
+								locations.add(to);
 //
-							const node = dojo.place(`<div id='SSaction-${to}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[this.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
-							dojo.style(node, {left: `${BOARD[to][0] - 5}%`, top: `${BOARD[to][1] - 5}%`});
-							dojo.connect(node, 'click', (event) => {
-								dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
-									node.dataset.location = to;
-									this.bgagame.placeUnit(node.dataset);
-									if (dojo.query(`.SSunit[data-location='${to}']:not([data-faction='${this.faction}'])`, 'SSboard').length > 0) dojo.removeClass(node, 'SSselected');
-									this.show();
+								const node = dojo.place(`<div id='SSaction-${to}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[this.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+								dojo.style(node, {left: `${BOARD[to][0] - 5}%`, top: `${BOARD[to][1] - 5}%`});
+								dojo.connect(node, 'click', (event) => {
+									dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
+										node.dataset.location = to;
+										this.bgagame.placeUnit(node.dataset);
+										if (dojo.query(`.SSunit[data-location='${to}']:not([data-faction='${this.faction}'])`, 'SSboard').length > 0) dojo.removeClass(node, 'SSselected');
+										this.show();
+									});
 								});
-							});
-							this.board.arrow(from, to, '#45a1bf40');
+//								this.board.arrow(from, to, '#45a1bf20');
+							}
 						}
 					}
 				}

@@ -7,7 +7,7 @@
  */
 trait events
 {
-	function events($card)
+	function eventReinforcement($card)
 	{
 		switch ($card)
 		{
@@ -72,6 +72,16 @@ trait events
 //
 			case 14:
 //
+				$columbus = Units::getColumbus();
+				if ($columbus && $columbus['location'] === 'prisonInSpain')
+				{
+					$columbus['location'] = 'event';
+					Units::update($columbus);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('placeUnit', '', ['unit' => $columbus]);
+//* -------------------------------------------------------------------------------------------------------- */
+				}
+//
 				$this->globals->set('overStacking', true);
 				$this->globals->set('simultaneous', true);
 				return['yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'red', 'red', 'red'];
@@ -99,7 +109,7 @@ trait events
 	function eventLocations($card)
 	{
 		$turn = intval(self::getGameStateValue('turn'));
-		$columbus = Units::getColumbus()['location'];
+		$columbus = Units::getColumbus();
 //
 		$locations = [];
 		foreach ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as $location)
@@ -110,27 +120,29 @@ trait events
 //
 		switch ($card)
 		{
-			case 1: // Place in any area not controlled by Spanish units
-			case 5: // Otherwise, place in areas with the least number of Spanish units
-			case 6:
-				return array_keys($locations[Factions::SPANISH], min($locations[Factions::SPANISH]));
+			case 1: // Place in any area not controlled by Spanish units. Otherwise, place in areas with the least number of Spanish units
+				return ['type' => 'any', 'locations' => array_keys($locations[Factions::SPANISH], min($locations[Factions::SPANISH]))];
+			case 5: // Place in any area not controlled by Spanish units. Otherwise, place in areas with the least number of Spanish units
+				return ['type' => 'any', 'locations' => array_keys($locations[Factions::SPANISH], min($locations[Factions::SPANISH]))];
+			case 6: // Place in any area not controlled by Spanish units. Otherwise, place in areas with the least number of Spanish units
+				return ['type' => 'one', 'locations' => array_keys($locations[Factions::SPANISH], min($locations[Factions::SPANISH]))];
 //
 			case 2: // Place in any area controlled by Spanish units
 			case 4: // If game turn 2, do not place where Columbus is located
 //
-				if ($turn === 2)
+				if ($turn === 2 && $columbus && is_numeric($columbus['location']))
 				{
-					return array_values(array_diff(array_keys(array_filter($locations[Factions::SPANISH], fn($count) => $count > 0)), [$columbus]));
+					return ['type' => 'one', 'locations' => array_values(array_diff(array_keys(array_filter($locations[Factions::SPANISH], fn($count) => $count > 0)), [$columbus['location']]))];
 				}
-				return array_keys(array_filter($locations[Factions::SPANISH], fn($count) => $count > 0));
+				return ['type' => 'one', 'locations' => array_keys(array_filter($locations[Factions::SPANISH], fn($count) => $count > 0))];
 //
-			case 7: return [1, 2, 10]; // Place at your choice between areas 1, 2 & 10
-			case 9: return $columbus > 0 ? [$columbus] : [5, 6, 15];
-			case 11: return Units::getAreas(Factions::SPANISH);
-			case 13: return [10];
-			case 14: return $columbus > 0 ? [$columbus] : [5, 6];
-			case 15: return Units::getAreas(Factions::SPANISH);
-			case 16: return array_keys($locations[Factions::INDIGENOUS], min($locations[Factions::INDIGENOUS]));
+			case 7: return ['type' => 'all', 'locations' => [1, 2, 10]]; // Place at your choice between areas 1, 2 & 10
+			case 9: return ['type' => 'one', 'locations' => $columbus && is_numeric($columbus['location']) ? [$columbus['location']] : [5, 6, 15]];
+			case 11: return ['type' => 'one', 'locations' => Units::getAreas(Factions::SPANISH)];
+			case 13: return ['type' => 'one', 'locations' => [10]];
+			case 14: return ['type' => 'any', 'locations' => $columbus && is_numeric($columbus['location']) ? [$columbus['location']] : [5, 6]];
+			case 15: return ['type' => 'one', 'locations' => Units::getAreas(Factions::SPANISH)];
+			case 16: return ['type' => 'one', 'locations' => array_keys($locations[Factions::INDIGENOUS], min($locations[Factions::INDIGENOUS]))];
 //
 			case 3:
 			case 8:
@@ -138,6 +150,25 @@ trait events
 			case 12:
 //
 			default: throw new BgaVisibleSystemException("Not implemented card: $card");
+		}
+	}
+	function eventResolve($card)
+	{
+		switch ($card)
+		{
+			case 15:
+//
+				$columbus = Units::getColumbus();
+
+				if ($columbus)
+				{
+					$columbus['location'] = 'prisonInSpain';
+					Units::update($columbus);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('placeUnit', '', ['unit' => $columbus]);
+//* -------------------------------------------------------------------------------------------------------- */
+				}
+				break;
 		}
 	}
 }

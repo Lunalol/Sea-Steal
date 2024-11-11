@@ -4,6 +4,10 @@
 .midSizeDialog {
 	text-align: justify;
 }
+::-webkit-scrollbar {
+    background: #ffffff00;
+	display: none;
+}
 
 .SSphase {
 	display: block;
@@ -39,17 +43,19 @@
 }
 #SSscrollArea {
     position: relative;
-	flex: 1 1 50%;
+	aspect-ratio: 5268/5138;
+	/*	flex: 1 1 50%;*/
     overflow: scroll;
-	border: 5px groove white;
+	border: 5px solid white;
 	box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
+	border-radius: 10px;
 }
 #SSboard {
 	position: absolute;
 	background-image: url('img/board.jpg');
-	width: 2658px;
-	height: 2599px;
+	width: 5268px;
+	height: 5138px;
 	transform-origin: left top;
 }
 #SScanvas{
@@ -190,20 +196,29 @@
 /* Cards */
 /*****************/
 .SSfate {
-	flex: 0 1 250px;
 	margin: 10px;
 }
+#SSboard>.SSfate {
+	position: absolute;
+	left: 46.1%;
+	right: 38.9%;
+	top: 63.9%;
+}
 .SShand {
+	display: flex;
+	flex-direction: column;
 	flex: 0 1 150px;
-	margin: 10px;
+	margin: 20px;
+}
+.mobile_version .SShand {
 }
 .SScard {
 	position: relative;
 	margin: auto 5px;
 	background-image: url('img/cards.jpg');
-	background-size: 6300%;
+	background-size: 5400%;
 	background-repeat: no-repeat;
-	aspect-ratio: 300/419;
+	aspect-ratio: 250/350;
 	border: 5px white solid;
 	border-radius: 5%;
 	transform-origin: top;
@@ -213,10 +228,10 @@
 	margin-bottom: -75%;
 }
 .SShand>.SScard:nth-child(odd) {
-	transform: rotate(5deg);
+	transform: rotate(+5deg);
 }
 .SShand>.SScard:nth-child(even) {
-	transform: rotate(-5deg);
+	transform: rotate(+5deg);
 }
 .SShand>.SScard.SSselectable {
 	box-shadow: 0px 0px 5px 5px grey;

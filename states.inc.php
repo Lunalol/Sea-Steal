@@ -93,7 +93,33 @@ $machinestates = [
 		"name" => "recoveryPhase",
 		"type" => "game",
 		"action" => "stRecoveryPhase",
-		"transitions" => ["impulsePhase" => 400]
+		"transitions" => ["reinforcementPhase" => 310, "impulsePhase" => 400]
+	],
+	310 => [
+		"name" => "reinforcementPhase",
+		'type' => 'game',
+		"action" => "stReinforcement",
+		'possibleactions' => ['actReinforcement'],
+		"transitions" => ["reinforcement" => 320, "impulsePhase" => 400]
+	],
+	320 => [
+		"name" => "reinforcement",
+		'description' => clienttranslate('${actplayer} get ${reinforcement} military units as reinforcement'),
+		'descriptionmyturn' => clienttranslate('${you} get ${reinforcement} military units as reinforcement'),
+		'type' => 'activeplayer',
+		'args' => 'argReinforcement',
+		'possibleactions' => ['actReinforcement'],
+		"transitions" => ["continue" => 330]
+	],
+	330 => [
+		"name" => "reinforcementCombatPhase",
+		'description' => clienttranslate('${actplayer} must engage combat'),
+		'descriptionmyturn' => clienttranslate('${you} must engage combat'),
+		'type' => 'activeplayer',
+		'args' => 'argCombatPhase',
+		"action" => "stCombatPhase",
+		'possibleactions' => ['actCombat'],
+		"transitions" => ["combat" => 1000, "continue" => 310]
 	],
 	400 => [
 		"name" => "impulsePhase",

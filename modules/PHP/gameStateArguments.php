@@ -14,8 +14,34 @@ trait gameStateArguments
 //
 		return $this->possible = [
 			'faction' => $faction, 'card' => $card, 'overStacking' => $this->globals->get('overStacking'),
-			'units' => Units::getAtLocation('event'),
-			'locations' => self::eventLocations($card)
+			'units' => Units::getAtLocation('event'), 'event' => self::eventLocations($card)
+		];
+	}
+	function argReinforcement()
+	{
+		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
+//
+		$bags = [Factions::INDIGENOUS => ['green', 'blue', 'white'], Factions::SPANISH => ['yellow', 'red']][$faction];
+		$units = Units::getAtLocation('event');
+//
+		$locations = [];
+		foreach (Units::getAreas($faction) as $location)
+		{
+			if (Units::overstacking($location, $faction) < 3) $locations[$location] = 0;
+			foreach ([(($location + 1 - 1) % 15) + 1, (($location - 1 - 1 + 15) % 15) + 1] as $adjacent)
+			{
+				if (!array_key_exists($adjacent, $locations) && Units::overstacking($adjacent, $faction) < 3)
+				{
+					if (sizeof(Units::getEnemyAtLocation($adjacent, $faction)) === 0) $locations[$adjacent] = 1;
+					else $locations[$adjacent] = 2;
+				}
+			}
+		}
+//
+		return $this->possible = [
+			'faction' => $faction,
+			'bags' => $units ? [] : $bags, 'reinforcement' => $this->globals->get("reinforcement/$faction"),
+			'units' => $units, 'locations' => $locations,
 		];
 	}
 	function argAction()
@@ -44,7 +70,8 @@ trait gameStateArguments
 //
 		$location = $this->globals->get('activeArea');
 //
-		return $this->possible = ['faction' => $faction, 'location' => $location, 'units' => Units::getAtLocation($location)];
+		return $this->possible = ['faction' => $faction, 'navalDifficulties' => $this->globals->get('navalDifficulties'),
+			'location' => $location, 'units' => Units::getAtLocation($location)];
 	}
 	function argCombatPhase()
 	{
@@ -89,7 +116,7 @@ trait gameStateArguments
 		foreach ($this->globals->get("combatUnits/$attacker") as $id) $locations[$attacker][$id] = Units::retreat(Units::get($id));
 		foreach ($this->globals->get("combatUnits/$defender") as $id) $locations[$defender][$id] = Units::retreat(Units::get($id));
 //
-		return ['location' => $location, '_private' => $this->possible = [
+		return ['location' => $location, 'navalDifficulties' => $this->globals->get('navalDifficulties'), '_private' => $this->possible = [
 			Factions::getPlayer($attacker) => ['faction' => $attacker, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$attacker")), 'locations' => $locations[$attacker]],
 			Factions::getPlayer($defender) => ['faction' => $defender, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$defender")), 'locations' => $locations[$defender]],
 		]];
