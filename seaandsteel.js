@@ -5,7 +5,7 @@ const DELAY = 500;
 define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 	g_gamethemeurl + "modules/JavaScript/constants.js",
 	g_gamethemeurl + "modules/JavaScript/board.js",
-	g_gamethemeurl + "modules/JavaScript/drag&drop.js"
+	g_gamethemeurl + "modules/JavaScript/movement.js"
 ], function (dojo, declare)
 {
 	return declare("bgagame.seaandsteel", ebg.core.gamegui, {
@@ -122,7 +122,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 											if (dojo.query(`.SScounter.SSprovisional[data-type='palisades']`, 'SSboard').length < 3)
 											{
 												const provisional = dojo.place(`<div class='SScounter SSprovisional' data-type='palisades' data-location='${location}'></div>`, 'SSboard');
-												dojo.style(provisional, {left: `${BOARD[location][0] - 2}%`, top: `${BOARD[location][1] - 2}%`});
+												dojo.style(provisional, {left: `${BOARD[location][0] - 1.5}%`, top: `${BOARD[location][1] - 1.5}%`});
 											}
 										}
 										$('SSbuildPalisades').innerHTML = dojo.string.substitute(_('Build ${N} palisade(s)'), {N: dojo.query(`.SScounter.SSprovisional[data-type='palisades']`, 'SSboard').length});
@@ -151,7 +151,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 											if (dojo.query(`.SScounter.SSprovisional[data-type='citadels']`, 'SSboard').length < 2)
 											{
 												const provisional = dojo.place(`<div class='SScounter SSprovisional' data-type='citadels' data-location='${location}'></div>`, 'SSboard');
-												dojo.style(provisional, {left: `${BOARD[location][0] - 2}%`, top: `${BOARD[location][1] - 2}%`});
+												dojo.style(provisional, {left: `${BOARD[location][0] - 1.5}%`, top: `${BOARD[location][1] - 1.5}%`});
 											}
 										}
 										$('SSbuildCitadels').innerHTML = dojo.string.substitute(_('Build ${N} citadel(s)'), {N: dojo.query(`.SScounter.SSprovisional[data-type='citadels']`, 'SSboard').length});
@@ -165,7 +165,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 				case 'movementPhase':
 //
 					{
-						const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+						const node = dojo.place(`<div id='SSaction-${state.args.location}' class='SSaction' style='background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
 						dojo.style(node, {left: `${BOARD[state.args.location][0] - 5}%`, top: `${BOARD[state.args.location][1] - 5}%`});
 					}
 					break;
@@ -251,7 +251,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			dojo.query('.SScounter.SSprovisional', 'SSboard').remove();
 //
 			dojo.query('.SSaction', 'SSboard').remove();
-		},
+		}
+		,
 		onUpdateActionButtons: function (stateName, args)
 		{
 			console.log('onUpdateActionButtons: ' + stateName, args);
@@ -263,7 +264,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 					case 'startOfGame':
 //
-						this.addActionButton('SSfate', _('Draw and reveal fate card'), (event) => {
+						this.addActionButton('SSfate', _('Draw and reveal first fate card'), (event) => {
 							dojo.stopEvent(event);
 							this.bgaPerformAction('actStartOfGame');
 						});
@@ -385,7 +386,6 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							{
 								if (Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
 									this.bgaPerformAction('actReinforcement', {reinforcement: JSON.stringify(this.bags)});
-
 							}
 							else
 							{
@@ -418,7 +418,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								this.setClientState('buildCitadels', {descriptionmyturn: _('${you} can build up to 2 citadels')});
 							});
 //
-						this.addActionButton('SSpass', _('Do nothing'), (event) => {
+						this.addActionButton('SSpass', _('Do nothing (TO BE REMOVED)'), (event) => {
 							dojo.stopEvent(event);
 							this.bgaPerformAction('actPass');
 						}, null, false, 'red');
@@ -467,42 +467,47 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					case 'movementPhase':
 //
 						{
+							this.movement = new Movement(this, args);
+//
 							let scribe = false;
+							const attestors = dojo.query(`.SScounter[data-type='attestor'][data-location='${args.location}']`, 'SSboard');
 //
 							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
-							for (let unit of Object.values(args.units))
+							dojo.query(`.SSunit[data-location='${args.location}']`, 'SSboard').forEach(node =>
 							{
-								if (unit.type === 'Scribes') scribe = true;
+								const unit = node.dataset;
+								if (unit.type === 'Scribes') scribe = attestors;
 //
-								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+								node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
 								dojo.connect(node, 'click', (event) => {
 									dojo.stopEvent(event);
 //									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
-									dojo.toggleClass(node, 'SSselected');
-									this.movement.show();
-									if (scribe)
+									if (!dojo.hasClass(node, 'SSremoved'))
 									{
-										const scribes = dojo.query(`.SSunit.SSselected[data-type='Scribes']`, 'SSunitContainer');
-										if (scribes.length === 1 && +scribes[0].dataset.location === args.location)
+										dojo.toggleClass(node, 'SSselected');
+										this.movement.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
+										if (scribe)
 										{
-											const attestors = dojo.query(`.SScounter[data-type='attestor'][data-location='${args.location}']`, 'SSboard');
-											dojo.toggleClass('SSscribe', 'disabled', attestors.length === 0);
+											const scribes = dojo.query(`.SSunit.SSselected[data-type='Scribes']`, 'SSunitContainer');
+											if (scribes.length === 1 && +scribes[0].dataset.location === args.location)
+											{
+												const attestors = dojo.query(`.SScounter[data-type='attestor'][data-location='${args.location}']`, 'SSboard');
+												dojo.toggleClass('SSscribe', 'disabled', attestors.length === 0);
+											}
+											else dojo.addClass('SSscribe', 'disabled');
 										}
-										else dojo.addClass('SSscribe', 'disabled');
 									}
 								});
 								dojo.toggleClass(node, 'SSselected');
-							}
-							this.movement = new Movement(this, args);
+							});
 //
-							if (scribe)
+							if (scribe && attestors.length > 0)
 							{
 								this.addActionButton('SSscribe', _('Use scribe'), (event) =>
 								{
 									dojo.stopEvent(event);
 									const scribes = dojo.query(`.SSunit.SSselected[data-type='Scribes']`, 'SSunitContainer');
-									const attestors = dojo.query(`.SScounter[data-type='attestor'][data-location='${args.location}']`, 'SSboard');
-									if (scribes.length === 1 && attestors.length === 1) this.bgaPerformAction('actScribe', {scribe: scribes[0].dataset.id, attestor: attestors[0].dataset.id});
+									if (scribes.length === 1) this.bgaPerformAction('actScribe', {scribe: scribes[0].dataset.id, attestor: attestors[0].dataset.id});
 								});
 								dojo.addClass('SSscribe', 'disabled');
 							}
@@ -511,11 +516,61 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								dojo.stopEvent(event);
 								this.movement.restore();
 							}, null, false, 'gray');
+//
+							const node = dojo.place(`<div id='SSshipsWear' class='SScounter action-button' data-type='shipsWear'></div>`, 'generalactions');
+							dojo.toggleClass(node, 'SSdisabled', args.navalDifficulties !== true);
+							dojo.connect(node, 'click', (event) =>
+							{
+								dojo.stopEvent(event);
+								if (!dojo.hasClass(node, 'SSdisabled'))
+								{
+									this.myDlg = new ebg.popindialog();
+									this.myDlg.create('SSshipwWear');
+									this.myDlg.setTitle(_("Reduce one unit to face naval difficulties"));
+//
+									let html = `<div id='SSunitContainer' class='SSunitContainer'>`;
+									dojo.query(`.SSunit[data-location='${args.location}']`, 'SSboard').forEach(node =>
+									{
+										const unit = node.dataset;
+										html += `<div class='SSunit-dialog SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`;
+									});
+									html += `</div>`;
+//
+									this.myDlg.setContent(html);
+									this.myDlg.show();
+//
+									this.connectClass('SSunit-dialog', 'click', (event) =>
+									{
+										dojo.stopEvent(event);
+										this.myDlg.destroy();
+										dojo.addClass('SSshipsWear', 'SSdisabled');
+										this.movement.navalDifficulties[args.location] = +event.currentTarget.dataset.id;
+										this.movement.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
+										dojo.query(`.SSunit[data-id='${event.currentTarget.dataset.id}']`, 'SSunitContainer').forEach((node) =>
+										{
+											if (dojo.hasClass(node, 'SSreduced'))
+											{
+												dojo.addClass(node, 'SSremoved');
+												dojo.removeClass(node, 'SSselected');
+											}
+											else dojo.addClass(node, 'SSreduced');
+										});
+									});
+								}
+							}
+							);
+							this.addTooltip(node.id,
+									_('Naval difficulties: both players are affected but the Indigenous player is only affected if moving to a non-contiguous area by using rebel units. For each naval movement to a non-contiguous area (including drag and drop movements) the player should reduce one unit in the origin area from its full-strength to its reduced strength side or eliminate one unit if it is by its reduced side already.'),
+									_('Ships wear')
+									);
+//
 							this.addActionButton('SSdone', _('Confirm movement'), (event) => {
 								dojo.stopEvent(event);
 								const units = this.movement.result();
+								if (dojo.query(`.SSunit[data-faction='${args.faction}'][data-location='${args.location}']:not([data-type='Leader'])`, 'SSboard').length > 3)
+									return this.showMessage(_('Overstacking'), 'info');
 								if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
-								this.bgaPerformAction('actMovementPhase', {units: JSON.stringify(units)});
+								this.bgaPerformAction('actMovementPhase', {units: JSON.stringify(units), shipsWear: JSON.stringify(this.movement.navalDifficulties)});
 							}, null, false, 'red');
 						}
 						break;
@@ -636,7 +691,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							this.addActionButton('SScancel', _('Cancel'), (event) => {
 								dojo.stopEvent(event);
 								this.restoreServerGameState();
-							});
+							}, null, false, 'gray');
 						}
 						break;
 //
@@ -648,7 +703,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			console.log('notifications subscriptions setup');
 //
 			dojo.subscribe('fate', (notif) => this.fate(notif.args.fate));
-			dojo.subscribe('event', (notif) => this.gamedatas.event = notif.args.event);
+			dojo.subscribe('event', (notif) => dojo.query(`.SScard[data-id='${notif.args.card}']`, 'SShand').remove());
 //
 			dojo.subscribe('placeUnit', (notif) => this.placeUnit(notif.args.unit));
 			dojo.subscribe('placeCounter', (notif) => this.placeCounter(notif.args.counter));
@@ -702,12 +757,9 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 			for (let i = 0; i < hand.length; i++)
 			{
-				const node = $(`SScard-${i}`);
-				if (node)
-				{
-					node.dataset.id = hand[i];
-					dojo.setStyle(node, 'background-position-x', `${hand[i] / 53 * 100}%`);
-				}
+				let  node = $(`SScard-${i}`);
+				if (!node) node = dojo.place(`<div id='SScard-${i}' tabindex='0' class='SScard' data-id='${hand[i]}'></div>`, 'SShand');
+				dojo.setStyle(node, 'background-position-x', `${hand[i] / 53 * 100}%`);
 			}
 		},
 		placeUnit: function (unit)
@@ -719,9 +771,14 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			let node = $(`SSunit-${unit.id}`);
 			if (!node)
 			{
-				node = dojo.place(`<div id='SSunit-${unit.id}' class='SSunit' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}'></div>`, 'SSboard');
+				node = dojo.place(`<div id='SSunit-${unit.id}' class='SSunit' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-reduced='${unit.reduced}'></div>`, 'SSboard');
 				dojo.connect(node, 'click', (event) => {
-					dojo.stopEvent(event);
+					const action = $(`SSaction-${event.currentTarget.dataset.location}`);
+					if (action)
+					{
+						dojo.stopEvent(event);
+						action.click();
+					}
 				});
 			}
 			const from = node.dataset.location;
@@ -740,13 +797,13 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 		{
 			const ORDER = ['Leader', 'Cavalry', 'Arquebusiers', 'Swordmen', 'Pawns', 'Scribes', 'Caciques', 'Naborias', 'Calinagos', 'Tamas', 'Captains', 'Troops'];
 			const nodes = dojo.query(`.SSunit[data-faction=${faction}][data-location='${location}']`, 'SSboard').sort((a, b) => ORDER.indexOf(b.dataset.type) - ORDER.indexOf(a.dataset.type));
-			const delta = nodes.length > 10 ? .5 : 1;
+			const delta = nodes.length > 10 ? .25 : .75;
 			for (let i = 0; i < nodes.length; i++)
 			{
 				if (faction === 'Indigenous')
-					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] - 4 + (i - nodes.length / 2) * delta}%`, top: `${BOARD[location][1] - 0 + (i - nodes.length / 2) * delta}%`});
+					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] - 1.5 + (i - nodes.length / 2 + .5) * delta}%`, top: `${BOARD[location][1] - 5 + .5 * (i - nodes.length / 2) * delta}%`});
 				if (faction === 'Spanish')
-					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] + 1 + (i - nodes.length / 2) * delta}%`, top: `${BOARD[location][1] - 4 + (i - nodes.length / 2) * delta}%`});
+					dojo.style(nodes[i], {'z-index': 10 + i, left: `${BOARD[location][0] - 1.5 + (i - nodes.length / 2 + .5) * delta}%`, top: `${BOARD[location][1] + 2 + .5 * (i - nodes.length / 2) * delta}%`});
 			}
 		},
 		overstacking: function (units)
@@ -780,7 +837,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${TURN[counter.location][0] - 2}%`, top: `${TURN[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${TURN[counter.location][0] - 1.5}%`, top: `${TURN[counter.location][1] - 1.5}%`});
 						this.addTooltip(node.id,
 								_('This track indicates the current turn.'),
 								_('Game Turn (1-6): ') + `<B>${counter.location}</B>` + ` (${{1: '1492', 2: '1493-1494', 3: '1495-1496', 4: '1497-1499', 5: '1500-1502', 6: '1503-1505'}[counter.location]})`
@@ -795,7 +852,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${VP[counter.location][0] - 2}%`, top: `${VP[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${VP[counter.location][0] - 1.5}%`, top: `${VP[counter.location][1] - 1.5}%`});
 						this.addTooltip(node.id,
 								_('Players use the Victory Point Marker to track the accumulated Victory Points (VP) throughout the game.'),
 								_('Victory points (0-20): ') + `<B>${counter.location}</B>`
@@ -811,7 +868,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${IMPULSE[counter.location][0] - 2}%`, top: `${IMPULSE[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${IMPULSE[counter.location][0] - 1.5}%`, top: `${IMPULSE[counter.location][1] - 1.5}%`});
 						this.addTooltip(node.id,
 								_('This track is used during the Impulse Phase, a key action phase for both players. The number of impulses available determines the number of actions you can take during your turn. Players use their respective impulse markers to track their impulses during a game turn.'),
 								_('Impulses') + ' : ' + `<B>${counter.location}</B>`
@@ -826,7 +883,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${ROYALSUPPORT[counter.location][0] - 2}%`, top: `${ROYALSUPPORT[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${ROYALSUPPORT[counter.location][0] - 1.5}%`, top: `${ROYALSUPPORT[counter.location][1] - 1.5}%`});
 						this.addTooltip(node.id,
 								_('This track is relevant only to the Spanish player. It reflects the level of support received from the Spanish Crown for Columbus\' voyages. The Spanish player could receive advantages depending on the Royal Support Marker position.'),
 								_('Royal Support (0-10): ') + `<B>${counter.location}</B>`
@@ -842,7 +899,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${IMPULSE[counter.location][0] - 2}%`, top: `${IMPULSE[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${IMPULSE[counter.location][0] - 1.5}%`, top: `${IMPULSE[counter.location][1] - 1.5}%`});
 						this.addTooltip(node.id,
 								_('This track represents the opposing forces of divine influence throughout the game. A countercounter is is placed on either the "Divine Grace" side (favoring the Spanish) or the "Nature Spirits" side (favoring the Indigenous players). This can impact various aspects of the game, such as combat outcomes or incursion attempts.'),
 								_('Divine Grace / Nature Spirits')
@@ -857,7 +914,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					{
 						node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						dojo.connect(node, 'click', (event) => {
-							const action = $(`SSaction-${counter.location}`);
+							const action = $(`SSaction-${event.currentTarget.dataset.location}`);
 							if (action)
 							{
 								dojo.stopEvent(event);
@@ -865,7 +922,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							}
 						});
 					}
-					dojo.style(node, {left: `${BOARD[counter.location][0] - 2}%`, top: `${BOARD[counter.location][1] - 2}%`});
+					dojo.style(node, {left: `${BOARD[counter.location][0] - 1.5}%`, top: `${BOARD[counter.location][1] - 1.5}%`});
 //
 					break;
 //
@@ -876,7 +933,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${ATTESTOR[counter.location][0] - 2}%`, top: `${ATTESTOR[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${ATTESTOR[counter.location][0] - 1.5}%`, top: `${ATTESTOR[counter.location][1] - 1.5}%`});
 						this.addTooltipHtml(node.id, _('Attestor Marker'));
 					}
 					break;
@@ -888,7 +945,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${BOARD[counter.location][0] - 2}%`, top: `${BOARD[counter.location][1] - 2}%`});
+						dojo.style(node, {left: `${BOARD[counter.location][0] - 1.5}%`, top: `${BOARD[counter.location][1] - 1.5}%`});
 						this.addTooltip(node.id,
 								_('Naval difficulties: both players are affected but the Indigenous player is only affected if moving to a non-contiguous area by using rebel units. For each naval movement to a non-contiguous area (including drag and drop movements) the player should reduce one unit in the origin area from its full-strength to its reduced strength side or eliminate one unit if it is by its reduced side already.'),
 								_('Ships wear')

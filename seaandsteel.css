@@ -1,4 +1,4 @@
-#overall-content div,img {
+#overall-content div,.standard_popin div, img {
 	user-select: none;
 }
 .midSizeDialog {
@@ -43,7 +43,7 @@
 }
 #SSscrollArea {
     position: relative;
-	aspect-ratio: 5268/5138;
+	aspect-ratio: 4096/3004;
 	/*	flex: 1 1 50%;*/
     overflow: scroll;
 	border: 5px solid white;
@@ -54,8 +54,8 @@
 #SSboard {
 	position: absolute;
 	background-image: url('img/board.jpg');
-	width: 5268px;
-	height: 5138px;
+	width: 4096px;
+	height: 3004px;
 	transform-origin: left top;
 }
 #SScanvas{
@@ -85,7 +85,7 @@
 }
 #SSboard>.SSunit {
 	position: absolute;
-	width: 4%;
+	width: 3%;
 	z-index: 10;
 }
 #SSboard>.SSunit.SSdisabled {
@@ -200,15 +200,16 @@
 }
 #SSboard>.SSfate {
 	position: absolute;
-	left: 46.1%;
-	right: 38.9%;
-	top: 63.9%;
+	left: 62.6%;
+	right: 25.4%;
+	top: 73.7%;
 }
 .SShand {
 	display: flex;
 	flex-direction: column;
 	flex: 0 1 150px;
 	margin: 20px;
+	align-self: start;
 }
 .mobile_version .SShand {
 }
@@ -225,7 +226,7 @@
 	transition: transform .25s, box-shadow .25s, filter .25s;
 }
 .SShand>.SScard {
-	margin-bottom: -75%;
+	margin-bottom: -60%;
 }
 .SShand>.SScard:nth-child(odd) {
 	transform: rotate(+5deg);
@@ -249,19 +250,21 @@
 
 .SSunitContainer {
 	display: inline-flex;
+	flex-wrap: wrap;
 	vertical-align: middle;
 	margin: 0px 10px;
-	height: 75px;
 }
 .SSunitContainer>.SSunit {
-	margin: 5px;
+	height: 50px;
+	width: 50px;
+	margin: 1px;
 	transition: transform .25s, filter .25s;
 	filter: grayscale(1);
 }
 .SSunitContainer>.SSunit.SSremoved:before {
 	content: '❌';
 	font-size: 40px;
-	line-height: 75px;
+	line-height: 50px;
 }
 .SSunitContainer>.SSunit.SSselected {
 	filter: none;
@@ -289,8 +292,16 @@
 }
 #SSboard>.SScounter {
 	position: absolute;
-	width: 4%;
+	width: 3%;
 	z-index: 5;
+}
+#generalactions .SScounter {
+	display: inline-block;
+	vertical-align: middle;
+	width: 50px;
+}
+#generalactions .SScounter.SSdisabled {
+	filter: grayscale(1);
 }
 #SSboard>.SScounter[data-type='palisades'] {
 	opacity: 75%
@@ -302,7 +313,7 @@
 }
 .SScounter:focus
 {
-	transform: translate(60%,60%);
+	transform: translate(60%,60%) scale(150%);
 	transition: transform .5s, filter .5s;
 }
 .log .SScounter {

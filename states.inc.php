@@ -16,7 +16,7 @@ $machinestates = [
 	],
 	15 => [
 		"name" => "startOfGame",
-		"description" => clienttranslate('${actplayer} must trigger the arrival of the Spanish to the Caribbean Islands in 1492'),
+		"description" => clienttranslate('Opponent must trigger the arrival of the Spanish to the Caribbean Islands in 1492'),
 		"descriptionmyturn" => clienttranslate('${you} must trigger the arrival of the Spanish to the Caribbean Islands in 1492'),
 		"type" => "activeplayer",
 		"possibleactions" => ["actStartOfGame"],
@@ -58,7 +58,7 @@ $machinestates = [
 	],
 	210 => [
 		'name' => 'secretChoice',
-		'description' => clienttranslate('Players have to secretly choose one card from their hand'),
+		'description' => clienttranslate('Opponent has to secretly choose one card from their hand'),
 		'descriptionmyturn' => clienttranslate('${you} have to secretly choose one card from your hand'),
 		'type' => 'multipleactiveplayer',
 		'possibleactions' => ['actSecretChoice'],
@@ -72,7 +72,7 @@ $machinestates = [
 	],
 	230 => [
 		"name" => "eventResolution",
-		'description' => clienttranslate('${actplayer} must resolve their choosen Event Card'),
+		'description' => clienttranslate('Opponent must resolve their choosen Event Card'),
 		'descriptionmyturn' => clienttranslate('${you} must revolve your choosen Event Card'),
 		'type' => 'activeplayer',
 		'args' => 'argEventResolution',
@@ -81,7 +81,7 @@ $machinestates = [
 	],
 	240 => [
 		"name" => "eventCombatPhase",
-		'description' => clienttranslate('${actplayer} must engage combat'),
+		'description' => clienttranslate('Opponent must engage combat'),
 		'descriptionmyturn' => clienttranslate('${you} must engage combat'),
 		'type' => 'activeplayer',
 		'args' => 'argCombatPhase',
@@ -104,7 +104,7 @@ $machinestates = [
 	],
 	320 => [
 		"name" => "reinforcement",
-		'description' => clienttranslate('${actplayer} get ${reinforcement} military units as reinforcement'),
+		'description' => clienttranslate('Opponent gets ${reinforcement} military units as reinforcement'),
 		'descriptionmyturn' => clienttranslate('${you} get ${reinforcement} military units as reinforcement'),
 		'type' => 'activeplayer',
 		'args' => 'argReinforcement',
@@ -113,7 +113,7 @@ $machinestates = [
 	],
 	330 => [
 		"name" => "reinforcementCombatPhase",
-		'description' => clienttranslate('${actplayer} must engage combat'),
+		'description' => clienttranslate('Opponent must engage combat'),
 		'descriptionmyturn' => clienttranslate('${you} must engage combat'),
 		'type' => 'activeplayer',
 		'args' => 'argCombatPhase',
@@ -135,7 +135,7 @@ $machinestates = [
 	],
 	410 => [
 		"name" => "action",
-		'description' => clienttranslate('${actplayer} can do an action'),
+		'description' => clienttranslate('Opponent can do an action'),
 		'descriptionmyturn' => clienttranslate('${you} can do an action'),
 		'type' => 'activeplayer',
 		'args' => 'argAction',
@@ -145,7 +145,7 @@ $machinestates = [
 	],
 	420 => [
 		"name" => "movementPhase",
-		'description' => clienttranslate('${actplayer} can move units from activated area'),
+		'description' => clienttranslate('Opponent can move units from activated area'),
 		'descriptionmyturn' => clienttranslate('${you} can move units from activated area'),
 		'type' => 'activeplayer',
 		'args' => 'argMovementPhase',
@@ -154,7 +154,7 @@ $machinestates = [
 	],
 	440 => [
 		"name" => "impulseCombatPhase",
-		'description' => clienttranslate('${actplayer} must engage combat'),
+		'description' => clienttranslate('Opponent must engage combat'),
 		'descriptionmyturn' => clienttranslate('${you} must engage combat'),
 		'type' => 'activeplayer',
 		'args' => 'argCombatPhase',
@@ -179,7 +179,7 @@ $machinestates = [
 //
 	1000 => [
 		'name' => 'combatSelectUnits',
-		'description' => clienttranslate('Players have to choose units engaged in the combat'),
+		'description' => clienttranslate('Opponent has to choose units engaged in the combat'),
 		'descriptionmyturn' => clienttranslate('${you} have to choose units engaged in the combat'),
 		'type' => 'multipleactiveplayer',
 		'args' => 'argCombatSelectUnits',
@@ -195,7 +195,7 @@ $machinestates = [
 	],
 	1020 => [
 		'name' => 'combatHits',
-		'description' => clienttranslate('Players have to inflict combat hits'),
+		'description' => clienttranslate('Opponent has to inflict combat hits'),
 		'descriptionmyturn' => clienttranslate('${you} have to inflict combat hits'),
 		'type' => 'multipleactiveplayer',
 		'args' => 'argCombatHits',
@@ -205,7 +205,7 @@ $machinestates = [
 	],
 	1030 => [
 		'name' => 'combatRetreat',
-		'description' => clienttranslate('Players have the opportunity to retreat'),
+		'description' => clienttranslate('Opponent has the opportunity to retreat'),
 		'descriptionmyturn' => clienttranslate('${you} have the opportunity to retreat'),
 		'type' => 'multipleactiveplayer',
 		'args' => 'argCombatRetreat',
@@ -217,6 +217,6 @@ $machinestates = [
 		"name" => "endOfCombat",
 		"type" => "game",
 		"action" => "stEndOfCombat",
-		"transitions" => ["goldSearch" => 1100, "eventCombatPhase" => 240, "impulseCombatPhase" => 440]
+		"transitions" => ["goldSearch" => 1100, "eventCombatPhase" => 240, "reinforcementCombatPhase" => 330, "impulseCombatPhase" => 440]
 	],
 ];

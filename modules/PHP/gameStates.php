@@ -142,7 +142,7 @@ trait gameStates
 	{
 		$turn = intval(self::incGameStateValue('turn', 1));
 //* -------------------------------------------------------------------------------------------------------- */
-		self::notifyAllPlayers('updateTurn', '<span class="SSphase">${LOG} ${turn}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Start of turn'), 'turn' => $turn]);
+		self::notifyAllPlayers('msg', '<span class="SSphase">${LOG} ${turn}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Start of turn'), 'turn' => $turn]);
 //* -------------------------------------------------------------------------------------------------------- */
 		$counter = Counters::getByType('turn')[0];
 		$counter['location'] = $turn;
@@ -307,7 +307,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Recovery phase')]);
 //* -------------------------------------------------------------------------------------------------------- */
-			$this->globals->set('state', 'recoveryCombatPhase');
+			$this->globals->set('state', 'reinforcementCombatPhase');
 //
 			$indigenous = $this->globals->get("recoveryValue/" . Factions::INDIGENOUS);
 			$spanish = $this->globals->get("recoveryValue/" . Factions::SPANISH);
@@ -491,8 +491,8 @@ trait gameStates
 //
 				if (in_array($location, [3, 4, 5, 7]))
 				{
-					if ($side === 'attacker' && $faction === Factions::SPANISH && in_array($unit['bag'], ['yellow', 'white'])) $modifier -= 1;
-					if ($side === 'defender' && $faction === Factions::INDIGENOUS) $modifier += 1;
+					if ($side === 'defender' && in_array($unit['bag'], ['green', 'blue', 'red'])) $modifier += 1;
+					if ($side === 'attacker' && in_array($unit['bag'], ['yellow', 'white'])) $modifier -= 1;
 				}
 //
 // B) Palisade: It provides with a +1 Combat Factor when defending to the Spanish player

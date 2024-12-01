@@ -59,6 +59,7 @@ trait gameStateActions
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeUnit', '', ['unit' => $unit]);
 //* -------------------------------------------------------------------------------------------------------- */
+			if (!$this->globals->get('overStacking') && Units::overstacking($location, $faction) > 3) throw new BgaUserException(self::_("Overstacking"));
 		}
 		foreach (Units::getAtLocation('event') as $unit)
 		{
@@ -67,6 +68,14 @@ trait gameStateActions
 			Units::update($unit);
 		}
 //
+		$card = $this->globals->get("event/$faction");
+//
+		$hand = Factions::getStatus($faction, 'events');
+		unset($hand[array_search($card, $hand)]);
+		Factions::setStatus($faction, 'events', array_values($hand));
+//* -------------------------------------------------------------------------------------------------------- */
+		self::notifyPlayer($player_id, 'event', '', ['card' => $card]);
+//* -------------------------------------------------------------------------------------------------------- */
 		self::eventResolve($this->globals->get("event/$faction"));
 //
 		$this->globals->set("recoveryValue/$faction", $this->CARDS[$this->possible['card']][0]);
@@ -93,9 +102,11 @@ trait gameStateActions
 //
 		if (!is_null($units))
 		{
+			$priority = 0;
 			foreach ($units as $id => $location)
 			{
 				if (!array_key_exists($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
+				$priority = max($priority, $this->possible['locations'][$location]);
 //
 				$unit = Units::get($id);
 				$unit['location'] = $location;
@@ -103,7 +114,11 @@ trait gameStateActions
 //* -------------------------------------------------------------------------------------------------------- */
 				self::notifyAllPlayers('placeUnit', '', ['unit' => $unit]);
 //* -------------------------------------------------------------------------------------------------------- */
+				if (Units::overstacking($location, $faction) > 3) throw new BgaUserException(self::_("Overstacking"));
 			}
+//
+			if ($priority > min(Units::reinforcement($faction))) throw new BgaUserException(self::_("Priorities not respected"));
+//
 			foreach (Units::getAtLocation('event') as $unit)
 			{
 				if ($unit['type'] === 'Leader') throw new BgaUserException(self::_("Leader must be placed in area"));
@@ -248,18 +263,107 @@ trait gameStateActions
 //
 		$this->gamestate->nextState('continue');
 	}
-	function actMovementPhase(#[JsonParam] array $units)
+	function actMovementPhase(#[JsonParam] array $units, #[JsonParam] array $shipsWear)
 	{
 		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
 //
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 //
-		foreach ($units as $id => $location)
-		{
-			if (in_array($id, $this->possible['units'])) throw new BgaVisibleSystemException("Invalid unit: $id");
+		$from = $this->globals->get('activeArea');
 //
+		if ($navalDifficulties = $this->globals->get('navalDifficulties'))
+		{
+			if (array_key_exists($from, $shipsWear) && is_int($shipsWear[$from]))
+			{
+				$unit = Units::get($id = $shipsWear[$from]);
+//
+				if (!$unit) throw new BgaVisibleSystemException("Invalid unit: $id");
+				if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+				if (intval($unit['location']) !== $from) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+//
+				if (intval($unit['reduced']) === 0)
+				{
+					$unit['reduced'] = 1;
+					Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('placeUnit', clienttranslate('A unit is reduced to ${UNIT}'), ['unit' => $unit, 'UNIT' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+				}
+				else
+				{
+					switch ($unit['type'])
+					{
+						case 'Cavalry':
+						case 'Arquebusiers':
+						case 'Swordmen':
+							{
+								$unit['location'] = $unit['bag'];
+								Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>yellow</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+							}
+							break;
+//
+						case 'Pawns':
+						case 'Scribes':
+							{
+								$unit['location'] = $unit['bag'];
+								Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>red</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+							}
+							break;
+//
+						case 'Caciques':
+						case 'Naborias':
+							{
+								$unit['location'] = $unit['bag'];
+								Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>green</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+							}
+							break;
+//
+						case 'Calinagos':
+						case 'Tamas':
+							{
+								$unit['location'] = $unit['bag'];
+								Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>blue</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+							}
+							break;
+//
+						default:
+							{
+								$unit['location'] = 'aside';
+								Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed from the game'), ['unit' => $unit, 'UNIT' => $unit]);
+//* -------------------------------------------------------------------------------------------------------- */
+							}
+					}
+				}
+//
+				$navalDifficulties = false;
+			}
+		}
+//
+		foreach ($units as $id => $to)
+		{
 			$unit = Units::get($id);
-			$unit['location'] = $location;
+//
+			if (!$unit) throw new BgaVisibleSystemException("Invalid unit: $id");
+			if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+			if (intval($unit['location']) !== $from) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+//
+			if ($navalDifficulties && !in_array($to, [(($unit['location'] + 1 - 1) % 15) + 1, (($unit['location'] - 1 - 1 + 15) % 15) + 1])) throw new BgaVisibleSystemException("Naval difficulties");
+//
+			$unit['location'] = $to;
 			Units::update($unit);
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeUnit', '', ['unit' => $unit]);

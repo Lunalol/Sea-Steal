@@ -55,6 +55,27 @@ class Units extends APP_GameClass
 	{
 		return intval(self::getUniqueValueFromDB("SELECT COUNT(*) FROM units WHERE location = '$location' AND faction = '$faction' AND type NOT IN ('Leader')"));
 	}
+	static function reinforcement(string $faction): array
+	{
+		$locations = [];
+		foreach (Units::getAreas($faction) as $location)
+		{
+			if (sizeof(Units::getEnemyAtLocation($location, $faction)) === 0)
+			{
+				if (Units::overstacking($location, $faction) < 3) $locations[$location] = 0;
+				foreach ([(($location + 1 - 1) % 15) + 1, (($location - 1 - 1 + 15) % 15) + 1] as $adjacent)
+				{
+					if (!array_key_exists($adjacent, $locations) && Units::overstacking($adjacent, $faction) < 3)
+					{
+						if (sizeof(Units::getEnemyAtLocation($adjacent, $faction)) === 0) $locations[$adjacent] = 1;
+						else $locations[$adjacent] = 2;
+					}
+				}
+			}
+			else $locations[$location] = 2;
+		}
+		return $locations;
+	}
 	static function retreat(array $unit): array
 	{
 		$locations = [];

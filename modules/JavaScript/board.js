@@ -26,7 +26,7 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 //
 			dojo.connect(this.scrollArea, 'click', (event) =>
 			{
-				navigator.clipboard.writeText(`${Math.round(event.offsetX / boardWidth * 10000) / 100},${Math.round(event.offsetY / boardHeight * 10000) / 100}`);
+				navigator.clipboard.writeText(`${Math.round(event.offsetX / boardWidth * 1000) / 10},${Math.round(event.offsetY / boardHeight * 1000) / 10}`);
 			});
 //
 // Slider setting for zoom

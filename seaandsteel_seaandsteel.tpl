@@ -11,14 +11,6 @@
 		</div>
 	</div>
 	<div id='SShand' class='SShand'>
-		<div id='SScard-0' tabindex='0' class='SScard'></div>
-		<div id='SScard-1' tabindex='0' class='SScard'></div>
-		<div id='SScard-2' tabindex='0' class='SScard'></div>
-		<div id='SScard-3' tabindex='0' class='SScard'></div>
-		<div id='SScard-4' tabindex='0' class='SScard'></div>
-		<div id='SScard-5' tabindex='0' class='SScard'></div>
-		<div id='SScard-6' tabindex='0' class='SScard'></div>
-		<div id='SScard-7' tabindex='0' class='SScard'></div>
 	</div>
 </div>
 <script type="text/javascript">
