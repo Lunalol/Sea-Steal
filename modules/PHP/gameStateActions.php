@@ -281,73 +281,7 @@ trait gameStateActions
 				if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
 				if (intval($unit['location']) !== $from) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
 //
-				if (intval($unit['reduced']) === 0)
-				{
-					$unit['reduced'] = 1;
-					Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('A unit is reduced to ${UNIT}'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-				}
-				else
-				{
-					switch ($unit['type'])
-					{
-						case 'Cavalry':
-						case 'Arquebusiers':
-						case 'Swordmen':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>yellow</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						case 'Pawns':
-						case 'Scribes':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>red</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						case 'Caciques':
-						case 'Naborias':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>green</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						case 'Calinagos':
-						case 'Tamas':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>blue</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						default:
-							{
-								$unit['location'] = 'aside';
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed from the game'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-					}
-				}
+				self::reduceUnit($unit);
 //
 				$navalDifficulties = false;
 			}
@@ -418,118 +352,59 @@ trait gameStateActions
 				if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
 				if (!in_array($id, $this->globals->get("combatUnits/$unit[faction]"))) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
 //
-				if ($hits === 1 && intval($unit['reduced']) === 0)
-				{
-					$unit['reduced'] = 1;
-					Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('A unit is reduced to ${UNIT}'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-				}
-				else
-				{
-					$this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), [$id])));
-//
-					switch ($unit['type'])
-					{
-						case 'Cavalry':
-						case 'Arquebusiers':
-						case 'Swordmen':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>yellow</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						case 'Pawns':
-						case 'Scribes':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>red</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						case 'Caciques':
-						case 'Naborias':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>green</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						case 'Calinagos':
-						case 'Tamas':
-							{
-								$unit['location'] = $unit['bag'];
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>blue</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-							break;
-//
-						default:
-							{
-								$unit['location'] = 'aside';
-								Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-								self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed from the game'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-							}
-					}
-				}
+				if (!self::reduceUnit($unit, $hits)) $this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), [$id])));
 			}
 		}
 //
 		$this->gamestate->setPlayerNonMultiactive($player_id, 'combatRolls');
 	}
-	function actRetreat(#[IntParam(min: 1, max: 15)] int $location, #[JsonParam] array $units)
+	function actRetreat(#[JsonParam] array $units, #[JsonParam] array $shipsWear)
 	{
 		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
 //
 		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
 		if ($faction !== $this->possible[$player_id]['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 //
-		foreach ($units as $id)
+		$from = $this->globals->get('location');
+//
+		if ($navalDifficulties = $this->globals->get('navalDifficulties'))
+		{
+			if (array_key_exists($from, $shipsWear) && is_int($shipsWear[$from]))
+			{
+				$unit = Units::get($id = $shipsWear[$from]);
+//
+				if (!$unit) throw new BgaVisibleSystemException("Invalid unit: $id");
+				if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+				if (intval($unit['location']) !== $from) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+//
+				self::reduceUnit($unit);
+//
+				$navalDifficulties = false;
+			}
+		}
+//
+		foreach ($units as $id => $to)
 		{
 			$unit = Units::get($id);
-			if (array_diff($units, $this->globals->get("combatUnits/$faction"))) throw new BgaVisibleSystemException("Invalid units: " . json_encode($units));
 //
-			$locations = Units::retreat($unit);
-			if (!in_array($location, $locations)) throw new BgaVisibleSystemException("Invalid location: $location");
+			if (!$unit) throw new BgaVisibleSystemException("Invalid unit: $id");
+			if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+			if (intval($unit['location']) !== $from) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
 //
-			$unit['location'] = $location;
+			if ($navalDifficulties && !in_array($to, [(($unit['location'] + 1 - 1) % 15) + 1, (($unit['location'] - 1 - 1 + 15) % 15) + 1])) throw new BgaVisibleSystemException("Naval difficulties");
+//
+			$unit['location'] = $to;
 			Units::update($unit);
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeUnit', '', ['unit' => $unit]);
 //* -------------------------------------------------------------------------------------------------------- */
 		}
-		$this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), $units)));
 //
-		$this->gamestate->nextState('continue');
-	}
-	function actNoRetreat()
-	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+		$this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), array_keys($units))));
 //
-		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
-		if ($faction !== $this->possible[$player_id]['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
-//
-		$attacker = $this->globals->get('attacker');
-		$defender = $this->globals->get('defender');
-//
-		if ($player_id === Factions::getPlayer($defender))
+		if ($player_id === Factions::getPlayer($this->globals->get('defender')))
 		{
-			$player_id = Factions::getPlayer($attacker);
+			$player_id = Factions::getPlayer($this->globals->get('attacker'));
 			self::giveExtraTime($player_id);
 			$this->gamestate->setPlayersMultiactive([$player_id], 'newRoundOfCombat', true);
 		}

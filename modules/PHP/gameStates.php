@@ -30,8 +30,8 @@ trait gameStates
 				}
 //			Rebel Units: Place all Rebel units into the white bag. // 16 Rebelds units (White)
 				{
-					for ($i = 0; $i < 6; $i++) Units::create(Factions::INDIGENOUS, 'Captains', 'white'); // 6 Captains
-					for ($i = 0; $i < 10; $i++) Units::create(Factions::INDIGENOUS, 'Troops', 'white'); // 10 Troops
+					for ($i = 0; $i < 5; $i++) Units::create(Factions::INDIGENOUS, 'Captains', 'white'); // 6 Captains
+					for ($i = 0; $i < 9; $i++) Units::create(Factions::INDIGENOUS, 'Troops', 'white'); // 10 Troops
 				}
 			}
 //		Spanish Player
@@ -124,8 +124,8 @@ trait gameStates
 //
 // 14. Additional counters: Place the following counters next to the board. Ship Wear, Palisades, Citadels, Caonabo , Anacaona, Guancaganarí , Sons of Caonabo
 //
-		for ($i = 0; $i < 11; $i++) Counters::create('palisades', 'aside');
-		for ($i = 0; $i < 5; $i++) Counters::create('citadels', 'aside');
+		for ($i = 0; $i < 10; $i++) Counters::create('palisades', 'aside');
+		for ($i = 0; $i < 3; $i++) Counters::create('citadels', 'aside');
 		Counters::create('shipsWear', 'aside');
 //
 		$fateCards = [array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn1)];

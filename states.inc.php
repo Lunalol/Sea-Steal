@@ -210,7 +210,7 @@ $machinestates = [
 		'type' => 'multipleactiveplayer',
 		'args' => 'argCombatRetreat',
 		"action" => "stCombatRetreat",
-		'possibleactions' => ['actRetreat', 'actNoRetreat'],
+		'possibleactions' => ['actRetreat'],
 		'transitions' => ['continue' => 1030, 'newRoundOfCombat' => 1000]
 	],
 	1050 => [

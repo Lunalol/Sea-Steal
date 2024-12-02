@@ -199,35 +199,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 				case 'combatRetreat':
 //
 					{
-						dojo.query('.SSunit', 'SSboard').addClass('SSdisabled');
-//
-						const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='background:${COLORS['combat']};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+						const node = dojo.place(`<div id='SSaction-${state.args.location}' class='SSaction' style='background:${COLORS[state.args._private.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
 						dojo.style(node, {left: `${BOARD[state.args.location][0] - 5}%`, top: `${BOARD[state.args.location][1] - 5}%`});
-					}
-					break;
-//
-				case 'retreat':
-//
-					{
-						dojo.query('.SSunit', 'SSboard').addClass('SSdisabled');
-//
-						const node = $(`SSunit-${state.args.unit.id}`);
-						dojo.toggleClass(node, 'SSdisabled');
-//
-						for (let location of state.args.locations)
-						{
-							const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
-							dojo.style(node, {left: `${BOARD[location][0] - 5}%`, top: `${BOARD[location][1] - 5}%`});
-							dojo.connect(node, 'click', (event) => {
-								dojo.stopEvent(event);
-								if (this.isCurrentPlayerActive())
-								{
-									const units = dojo.query('.SSunit.SSselected', 'SSunitContainer').reduce((L, node) => [...L, +node.dataset.id], []);
-									if (units.length > 0) this.bgaPerformAction('actRetreat', {location: location, units: JSON.stringify(units)});
-								}
-							});
-							this.board.arrow(+state.args.unit.location, location, '#45a1bf40');
-						}
 					}
 					break;
 //
@@ -264,21 +237,25 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 					case 'startOfGame':
 //
-						this.addActionButton('SSfate', _('Draw and reveal first fate card'), (event) => {
-							dojo.stopEvent(event);
-							this.bgaPerformAction('actStartOfGame');
-						});
+						{
+							this.addActionButton('SSfate', _('Draw and reveal first fate card'), (event) => {
+								dojo.stopEvent(event);
+								this.bgaPerformAction('actStartOfGame');
+							});
+						}
 						break;
 //
 					case 'secretChoice':
 //
-						dojo.query('.SShand>.SScard', 'SSplayArea').addClass('SSselectable');
+						{
+							dojo.query('.SShand>.SScard', 'SSplayArea').addClass('SSselectable');
 //
-						this.addActionButton('SSsecretChoice', _('Play event card'), (event) => {
-							dojo.stopEvent(event);
-							const nodes = dojo.query('.SShand>.SScard.SSselected', 'SSplayArea');
-							if (nodes.length === 1) this.bgaPerformAction('actSecretChoice', {card: nodes[0].dataset.id});
-						});
+							this.addActionButton('SSsecretChoice', _('Play event card'), (event) => {
+								dojo.stopEvent(event);
+								const nodes = dojo.query('.SShand>.SScard.SSselected', 'SSplayArea');
+								if (nodes.length === 1) this.bgaPerformAction('actSecretChoice', {card: nodes[0].dataset.id});
+							});
+						}
 						break;
 //
 					case 'eventResolution':
@@ -333,141 +310,147 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 					case 'reinforcement':
 //
-						const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
-						for (let unit of Object.values(args.units))
 						{
-							const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
-							dojo.connect(node, 'click', (event) => {
-								dojo.stopEvent(event);
+							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
+							for (let unit of Object.values(args.units))
+							{
+								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+								dojo.connect(node, 'click', (event) => {
+									dojo.stopEvent(event);
 //									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
-								dojo.toggleClass(node, 'SSselected');
-								if (event.detail > 1) dojo.query('.SSunit', 'SSunitContainer').addClass('SSselected');
-							});
-							dojo.toggleClass(node, 'SSselected');
-						}
-//
-						for (let [location, priority] of Object.entries(args.locations))
-						{
-							const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
-							dojo.style(node, {left: `${BOARD[location][0] - 5}%`, top: `${BOARD[location][1] - 5}%`, opacity: [1, .75, .5][priority]});
-							dojo.connect(node, 'click', (event) => {
-								dojo.stopEvent(event);
-								dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
-									dojo.addClass(this.placeUnit({id: node.dataset.id, faction: node.dataset.faction, type: node.dataset.type, location: location}), 'SSprovisional');
-									dojo.destroy(node);
+									dojo.toggleClass(node, 'SSselected');
+									if (event.detail > 1) dojo.query('.SSunit', 'SSunitContainer').addClass('SSselected');
 								});
-							});
-						}
+								dojo.toggleClass(node, 'SSselected');
+							}
 //
-						this.bags = {};
-						for (let bag of args.bags)
-						{
-							this.bags[bag] = 0;
-							this.addActionButton(`SSbag-${bag}`, `${this.BAGS[bag]} (${this.bags[bag]})`, (event) => {
+							for (let [location, priority] of Object.entries(args.locations))
+							{
+								const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+								dojo.style(node, {left: `${BOARD[location][0] - 5}%`, top: `${BOARD[location][1] - 5}%`, opacity: [1, .75, .5][priority]});
+								dojo.connect(node, 'click', (event) => {
+									dojo.stopEvent(event);
+									dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
+										dojo.addClass(this.placeUnit({id: node.dataset.id, faction: node.dataset.faction, type: node.dataset.type, location: location}), 'SSprovisional');
+										dojo.destroy(node);
+									});
+								});
+							}
+//
+							this.bags = {};
+							for (let bag of args.bags)
+							{
+								this.bags[bag] = 0;
+								this.addActionButton(`SSbag-${bag}`, `${this.BAGS[bag]} (${this.bags[bag]})`, (event) => {
+									dojo.stopEvent(event);
+									if (this.bags[bag] < 1 + Math.min(...Object.values(this.bags)) && Object.values(this.bags).reduce((s, v) => s + v, 0) < args.reinforcement)
+									{
+										this.bags[bag] += 1;
+										event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
+									}
+								});
+								if (['yellow', 'white'].includes(bag)) dojo.style(`SSbag-${bag}`, {background: bag, color: 'black'});
+								else dojo.style(`SSbag-${bag}`, {background: bag, color: 'white'});
+							}
+//
+							this.addActionButton('SSreset', _('Reset'), (event) => {
 								dojo.stopEvent(event);
-								if (this.bags[bag] < 1 + Math.min(...Object.values(this.bags)) && Object.values(this.bags).reduce((s, v) => s + v, 0) < args.reinforcement)
+								this.restoreServerGameState();
+							}, null, false, 'gray');
+//
+							this.addActionButton('SSreinforcement', _('Reinforcement'), (event) => {
+								dojo.stopEvent(event);
+								if (Object.values(args.units).length === 0)
 								{
-									this.bags[bag] += 1;
-									event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
+									if (Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
+										this.bgaPerformAction('actReinforcement', {reinforcement: JSON.stringify(this.bags)});
+								}
+								else
+								{
+									const units = dojo.query('.SSunit.SSprovisional', 'SSboard').reduce((L, node) => {
+										L[node.dataset.id] = node.dataset.location;
+										return L;
+									}, {});
+									if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
+									const nodes = dojo.query('.SSunit', 'SSunitContainer');
+									if (nodes.length === 0) this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)});
+									else this.confirmationDialog('All units are not deployed', () => this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)}));
 								}
 							});
-							if (['yellow', 'white'].includes(bag)) dojo.style(`SSbag-${bag}`, {background: bag, color: 'black'});
-							else dojo.style(`SSbag-${bag}`, {background: bag, color: 'white'});
 						}
-//
-						this.addActionButton('SSreset', _('Reset'), (event) => {
-							dojo.stopEvent(event);
-							this.restoreServerGameState();
-						}, null, false, 'gray');
-//
-						this.addActionButton('SSreinforcement', _('Reinforcement'), (event) => {
-							dojo.stopEvent(event);
-							if (Object.values(args.units).length === 0)
-							{
-								if (Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
-									this.bgaPerformAction('actReinforcement', {reinforcement: JSON.stringify(this.bags)});
-							}
-							else
-							{
-								const units = dojo.query('.SSunit.SSprovisional', 'SSboard').reduce((L, node) => {
-									L[node.dataset.id] = node.dataset.location;
-									return L;
-								}, {});
-								if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
-								const nodes = dojo.query('.SSunit', 'SSunitContainer');
-								if (nodes.length === 0) this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)});
-								else this.confirmationDialog('All units are not deployed', () => this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)}));
-							}
-						});
 						break;
 //
 					case 'action':
 //
-						this.addActionButton('SSactivation', _('Activate an area'), (event) => {
-							dojo.stopEvent(event);
-							this.setClientState('activation', {descriptionmyturn: _('${you} can activate an area')});
-						});
-//
-						if (args.palisades) this.addActionButton('SSbuildPalisades', _('Build palisades'), (event) => {
+						{
+							this.addActionButton('SSactivation', _('Activate an area'), (event) => {
 								dojo.stopEvent(event);
-								this.setClientState('buildPalisades', {descriptionmyturn: _('${you} can build up to 3 palisades')});
+								this.setClientState('activation', {descriptionmyturn: _('${you} can activate an area')});
 							});
 //
-						if (args.citadels) this.addActionButton('SSbuildCitadels', _('Build citadels'), (event) => {
+							if (args.palisades) this.addActionButton('SSbuildPalisades', _('Build palisades'), (event) => {
+									dojo.stopEvent(event);
+									this.setClientState('buildPalisades', {descriptionmyturn: _('${you} can build up to 3 palisades')});
+								});
+//
+							if (args.citadels) this.addActionButton('SSbuildCitadels', _('Build citadels'), (event) => {
+									dojo.stopEvent(event);
+									this.setClientState('buildCitadels', {descriptionmyturn: _('${you} can build up to 2 citadels')});
+								});
+//
+							this.addActionButton('SSpass', _('Do nothing (TO BE REMOVED)'), (event) => {
 								dojo.stopEvent(event);
-								this.setClientState('buildCitadels', {descriptionmyturn: _('${you} can build up to 2 citadels')});
-							});
-//
-						this.addActionButton('SSpass', _('Do nothing (TO BE REMOVED)'), (event) => {
-							dojo.stopEvent(event);
-							this.bgaPerformAction('actPass');
-						}, null, false, 'red');
-//
+								this.bgaPerformAction('actPass');
+							}, null, false, 'red');
+						}
 						break;
 //
 					case 'activation':
 //
-						this.addActionButton('SScancel', _('Cancel'), (event) => {
-							dojo.stopEvent(event);
-							this.restoreServerGameState();
-						}, null, false, 'gray');
-//
+						{
+							this.addActionButton('SScancel', _('Cancel'), (event) => {
+								dojo.stopEvent(event);
+								this.restoreServerGameState();
+							}, null, false, 'gray');
+						}
 						break;
 //
 					case 'buildPalisades':
 //
-						this.addActionButton('SScancel', _('Cancel'), (event) => {
-							dojo.stopEvent(event);
-							this.restoreServerGameState();
-						}, null, false, 'gray');
+						{
+							this.addActionButton('SScancel', _('Cancel'), (event) => {
+								dojo.stopEvent(event);
+								this.restoreServerGameState();
+							}, null, false, 'gray');
 //
-						this.addActionButton('SSbuildPalisades', dojo.string.substitute(_('Build ${N} palisade(s)'), {N: 0}), (event) => {
-							dojo.stopEvent(event);
-							const palisades = dojo.query(`.SScounter.SSprovisional[data-type='palisades']`, 'SSboard').reduce((L, node) => [...L, +node.dataset.location], []);
-							if (palisades.length > 0) this.bgaPerformAction('actBuildPalisades', {locations: JSON.stringify(palisades)});
-						}, null, false, 'red');
-//
+							this.addActionButton('SSbuildPalisades', dojo.string.substitute(_('Build ${N} palisade(s)'), {N: 0}), (event) => {
+								dojo.stopEvent(event);
+								const palisades = dojo.query(`.SScounter.SSprovisional[data-type='palisades']`, 'SSboard').reduce((L, node) => [...L, +node.dataset.location], []);
+								if (palisades.length > 0) this.bgaPerformAction('actBuildPalisades', {locations: JSON.stringify(palisades)});
+							}, null, false, 'red');
+						}
 						break;
 //
 					case 'buildCitadels':
 //
-						this.addActionButton('SScancel', _('Cancel'), (event) => {
-							dojo.stopEvent(event);
-							this.restoreServerGameState();
-						}, null, false, 'gray');
+						{
+							this.addActionButton('SScancel', _('Cancel'), (event) => {
+								dojo.stopEvent(event);
+								this.restoreServerGameState();
+							}, null, false, 'gray');
 //
-						this.addActionButton('SSbuildCitadels', dojo.string.substitute(_('Build ${N} citadel(s)'), {N: 0}), (event) => {
-							dojo.stopEvent(event);
-							const citadels = dojo.query(`.SScounter.SSprovisional[data-type='citadels']`, 'SSboard').reduce((L, node) => [...L, +node.dataset.location], []);
-							if (citadels.length > 0) this.bgaPerformAction('actBuildCitadels', {locations: JSON.stringify(citadels)});
-						}, null, false, 'red');
-//
+							this.addActionButton('SSbuildCitadels', dojo.string.substitute(_('Build ${N} citadel(s)'), {N: 0}), (event) => {
+								dojo.stopEvent(event);
+								const citadels = dojo.query(`.SScounter.SSprovisional[data-type='citadels']`, 'SSboard').reduce((L, node) => [...L, +node.dataset.location], []);
+								if (citadels.length > 0) this.bgaPerformAction('actBuildCitadels', {locations: JSON.stringify(citadels)});
+							}, null, false, 'red');
+						}
 						break;
 //
 					case 'movementPhase':
 //
 						{
-							this.movement = new Movement(this, args);
+							this.movement = new Movement(this, MOVEMENT, args.faction, args.location, args.navalDifficulties);
 //
 							let scribe = false;
 							const attestors = dojo.query(`.SScounter[data-type='attestor'][data-location='${args.location}']`, 'SSboard');
@@ -522,41 +505,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							dojo.connect(node, 'click', (event) =>
 							{
 								dojo.stopEvent(event);
-								if (!dojo.hasClass(node, 'SSdisabled'))
-								{
-									this.myDlg = new ebg.popindialog();
-									this.myDlg.create('SSshipwWear');
-									this.myDlg.setTitle(_("Reduce one unit to face naval difficulties"));
-//
-									let html = `<div id='SSunitContainer' class='SSunitContainer'>`;
-									dojo.query(`.SSunit[data-location='${args.location}']`, 'SSboard').forEach(node =>
-									{
-										const unit = node.dataset;
-										html += `<div class='SSunit-dialog SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`;
-									});
-									html += `</div>`;
-//
-									this.myDlg.setContent(html);
-									this.myDlg.show();
-//
-									this.connectClass('SSunit-dialog', 'click', (event) =>
-									{
-										dojo.stopEvent(event);
-										this.myDlg.destroy();
-										dojo.addClass('SSshipsWear', 'SSdisabled');
-										this.movement.navalDifficulties[args.location] = +event.currentTarget.dataset.id;
-										this.movement.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
-										dojo.query(`.SSunit[data-id='${event.currentTarget.dataset.id}']`, 'SSunitContainer').forEach((node) =>
-										{
-											if (dojo.hasClass(node, 'SSreduced'))
-											{
-												dojo.addClass(node, 'SSremoved');
-												dojo.removeClass(node, 'SSselected');
-											}
-											else dojo.addClass(node, 'SSreduced');
-										});
-									});
-								}
+								if (!dojo.hasClass(node, 'SSdisabled')) this.movement.shipsWear(args.faction, args.location);
 							}
 							);
 							this.addTooltip(node.id,
@@ -661,37 +610,55 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					case 'combatRetreat':
 //
 						{
-							dojo.query('.SSunit', 'SSboard').addClass('SSdisabled');
+							this.movement = new Movement(this, RETREAT, args._private.faction, args.location, args.navalDifficulties);
+//
 							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
 							for (let unit of Object.values(args._private.units))
 							{
-								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}''></div>`, container);
+								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
 								dojo.connect(node, 'click', (event) => {
 									dojo.stopEvent(event);
-									const node = $(`SSunit-${unit.id}`);
 //									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
-									dojo.removeClass(node, 'SSdisabled');
-									this.setClientState('retreat', {descriptionmyturn: _("${you} can choose a retreat location"), args: {faction: args._private.faction, unit: unit, locations: args._private.locations[unit.id]}});
+									if (!dojo.hasClass(node, 'SSremoved'))
+									{
+										dojo.toggleClass(node, 'SSselected');
+										this.movement.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
+									}
 								});
+								dojo.toggleClass(node, 'SSselected');
 							}
 //
-							this.addActionButton('SSnoRetreat', _('No retreat'), (event) => {
+							this.addActionButton('SSreset', _('Reset'), (event) => {
 								dojo.stopEvent(event);
-								this.bgaPerformAction('actNoRetreat');
-							});
-						}
-						break;
-//
-					case 'retreat':
-//
-						{
-							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
-							const node = dojo.place(`<div class='SSunit ${ +args.unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${args.unit.id}' data-faction='${args.unit.faction}' data-type='${args.unit.type}'></div>`, container);
-//
-							this.addActionButton('SScancel', _('Cancel'), (event) => {
-								dojo.stopEvent(event);
-								this.restoreServerGameState();
+								this.movement.restore();
 							}, null, false, 'gray');
+//
+							const node = dojo.place(`<div id='SSshipsWear' class='SScounter action-button' data-type='shipsWear'></div>`, 'generalactions');
+							dojo.toggleClass(node, 'SSdisabled', args.navalDifficulties !== true);
+							dojo.connect(node, 'click', (event) =>
+							{
+								dojo.stopEvent(event);
+								if (!dojo.hasClass(node, 'SSdisabled')) this.movement.shipsWear(args._private.faction, args.location);
+							}
+							);
+							this.addTooltip(node.id,
+									_('Naval difficulties: both players are affected but the Indigenous player is only affected if moving to a non-contiguous area by using rebel units. For each naval movement to a non-contiguous area (including drag and drop movements) the player should reduce one unit in the origin area from its full-strength to its reduced strength side or eliminate one unit if it is by its reduced side already.'),
+									_('Ships wear')
+									);
+//
+							this.addActionButton('SSdone', _('Confirm retreat'), (event) => {
+								dojo.stopEvent(event);
+								const units = this.movement.result();
+								if (dojo.query(`.SSunit[data-faction='${args.faction}'][data-location='${args.location}']:not([data-type='Leader'])`, 'SSboard').length > 3)
+									return this.showMessage(_('Overstacking'), 'info');
+								if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
+								this.bgaPerformAction('actRetreat', {units: JSON.stringify(units), shipsWear: JSON.stringify(this.movement.navalDifficulties)});
+							}, null, false, 'red');
+//
+//							this.addActionButton('SSnoRetreat', _('No retreat'), (event) => {
+//								dojo.stopEvent(event);
+//								this.bgaPerformAction('actNoRetreat');
+//							});
 						}
 						break;
 //

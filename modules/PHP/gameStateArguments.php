@@ -97,13 +97,9 @@ trait gameStateArguments
 		$attacker = $this->globals->get('attacker');
 		$defender = $this->globals->get('defender');
 //
-		$locations = [$attacker => [], $defender => []];
-		foreach ($this->globals->get("combatUnits/$attacker") as $id) $locations[$attacker][$id] = Units::retreat(Units::get($id));
-		foreach ($this->globals->get("combatUnits/$defender") as $id) $locations[$defender][$id] = Units::retreat(Units::get($id));
-//
 		return ['location' => $location, 'navalDifficulties' => $this->globals->get('navalDifficulties'), '_private' => $this->possible = [
-			Factions::getPlayer($attacker) => ['faction' => $attacker, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$attacker")), 'locations' => $locations[$attacker]],
-			Factions::getPlayer($defender) => ['faction' => $defender, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$defender")), 'locations' => $locations[$defender]],
+			Factions::getPlayer($attacker) => ['faction' => $attacker, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$attacker"))],
+			Factions::getPlayer($defender) => ['faction' => $defender, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$defender"))],
 		]];
 	}
 }

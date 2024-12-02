@@ -5,7 +5,7 @@ const boardWidth = 4096;
 const boardHeight = 3004;
 //
 const BOARD = {
-	0: [87, 32.5],
+	0: [90, 31.0],
 	1: [14, 24.5],
 	2: [23.2, 26.9],
 	3: [31.4, 30.1],
@@ -84,3 +84,7 @@ const IMPULSE = {
 	5: [59.7, 91.0]
 };
 const COLORS = {Indigenous: '#0000ffC0', Spanish: '#ff0000C0', combat: '#000000c0'};
+//
+const MOVEMENT = 0;
+const DRAGANDDROP = 1;
+const RETREAT = 2;

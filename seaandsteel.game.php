@@ -24,6 +24,7 @@ require_once(APP_GAMEMODULE_PATH . "module/table/table.game.php");
 require_once('modules/PHP/gameStates.php');
 require_once('modules/PHP/gameStateArguments.php');
 require_once('modules/PHP/gameStateActions.php');
+require_once('modules/PHP/gameUtils.php');
 require_once('modules/PHP/events.php');
 require_once('modules/PHP/Players.php');
 require_once('modules/PHP/Factions.php');
@@ -36,6 +37,7 @@ class seaandsteel extends Table
 	use gameStates;
 	use gameStateArguments;
 	use gameStateActions;
+	use gameUtils;
 
 	public function __construct()
 	{

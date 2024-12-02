@@ -4,7 +4,7 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 {
 	return declare("Movement", null,
 	{
-		constructor: function (bgagame, args)
+		constructor: function (bgagame, type, faction, location, navalDifficulties)
 		{
 			console.log('Movement constructor');
 //
@@ -12,10 +12,12 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 //
 			this.bgagame = bgagame;
 			this.board = bgagame.board;
-			this.faction = args.faction;
-			this.location = args.location;
 //
-			this.navalDifficulties = {[this.location]: args.navalDifficulties};
+			this.type = type;
+			this.faction = faction;
+			this.location = location;
+//
+			this.navalDifficulties = {[this.location]: navalDifficulties};
 //
 			this.rebels = dojo.query(`.SSunit[data-faction='${this.faction}'][data-location='${this.location}'][data-type='Captains']`, 'SSboard').length;
 			this.rebels += dojo.query(`.SSunit[data-faction='${this.faction}'][data-location='${this.location}'][data-type='Troops']`, 'SSboard').length;
@@ -35,15 +37,16 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 //
 			dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
 				const from = +node.dataset.location;
-				if (dojo.query(`.SSunit[data-location='${from}']:not([data-faction='${this.faction}'])`, 'SSboard').length === 0)
+				if (this.type === RETREAT || dojo.query(`.SSunit[data-location='${from}']:not([data-faction='${this.faction}'])`, 'SSboard').length === 0)
 				{
 					let possible = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-					if (navalDifficulties /*|| (this.faction === 'Indigenous' && this.rebels === 0)*/) possible = [((from + 1 - 1) % 15) + 1, ((from - 1 - 1 + 15) % 15) + 1];
+					if (navalDifficulties || (this.faction === 'Indigenous' && this.rebels === 0)) possible = [((from + 1 - 1) % 15) + 1, ((from - 1 - 1 + 15) % 15) + 1];
 //
 					for (let to of possible)
 					{
 						if (from !== to)
 						{
+							if (this.type === RETREAT && dojo.query(`.SSunit[data-location='${to}']:not([data-faction='${this.faction}'])`, 'SSboard').length > 0) continue;
 							if (!locations.has(to))
 							{
 								locations.add(to);
@@ -73,6 +76,41 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 						}
 					}
 				}
+			});
+		},
+		shipsWear: function (faction, location)
+		{
+			this.myDlg = new ebg.popindialog();
+			this.myDlg.create('SSshipwWear');
+			this.myDlg.setTitle(_("Reduce one unit to face naval difficulties"));
+//
+			let html = `<div id='SSunitContainer' class='SSunitContainer'>`;
+			dojo.query(`.SSunit[data-faction='${faction}'][data-location='${location}']`, 'SSboard').forEach(node =>
+			{
+				const unit = node.dataset;
+				html += `<div class='SSunit-dialog SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`;
+			});
+			html += `</div>`;
+//
+			this.myDlg.setContent(html);
+			this.myDlg.show();
+//
+			this.bgagame.connectClass('SSunit-dialog', 'click', (event) =>
+			{
+				dojo.stopEvent(event);
+				this.myDlg.destroy();
+				dojo.addClass('SSshipsWear', 'SSdisabled');
+				this.navalDifficulties[location] = +event.currentTarget.dataset.id;
+				this.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
+				dojo.query(`.SSunit[data-id='${event.currentTarget.dataset.id}']`, 'SSunitContainer').forEach((node) =>
+				{
+					if (dojo.hasClass(node, 'SSreduced'))
+					{
+						dojo.addClass(node, 'SSremoved');
+						dojo.removeClass(node, 'SSselected');
+					}
+					else dojo.addClass(node, 'SSreduced');
+				});
 			});
 		},
 		result: function ()
