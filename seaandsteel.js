@@ -36,10 +36,10 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						html += `<div style='width:300px;line-height:150%;'>`;
 						html += `<H2>${gamedatas.CARDS[node.dataset.id].title}</H2>`;
 						html += `<HR>`;
-						html += `<div style='margin: 10px 0px;'>${gamedatas.CARDS[node.dataset.id][1]}</div>`;
-						html += `<div style='margin: 10px 0px;'>${gamedatas.CARDS[node.dataset.id][2].replaceAll('. ', '.<BR>')}</div>`;
+						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][1])}</div>`;
+						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][2]).replaceAll('. ', '.<BR>')}</div>`;
 						html += `<HR>`;
-						html += `<div><I>${dojo.string.substitute('Reinforcement value: ${value}', {value: gamedatas.CARDS[node.dataset.id][0]})}</I></div>`;
+						html += `<div><I>${dojo.string.substitute(_('Reinforcement value: ${value}'), {value: gamedatas.CARDS[node.dataset.id][0]})}</I></div>`;
 						html += `</div>`;
 						html += `</div>`;
 					}
@@ -337,20 +337,46 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								});
 							}
 //
-							this.bags = {};
-							for (let bag of args.bags)
+							if (Object.values(args.units).length === 0)
 							{
-								this.bags[bag] = 0;
-								this.addActionButton(`SSbag-${bag}`, `${this.BAGS[bag]} (${this.bags[bag]})`, (event) => {
+								this.addActionButton('SSheal', _('Flip to full strength'), (event) => {
 									dojo.stopEvent(event);
-									if (this.bags[bag] < 1 + Math.min(...Object.values(this.bags)) && Object.values(this.bags).reduce((s, v) => s + v, 0) < args.reinforcement)
-									{
-										this.bags[bag] += 1;
-										event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
-									}
 								});
-								if (['yellow', 'white'].includes(bag)) dojo.style(`SSbag-${bag}`, {background: bag, color: 'black'});
-								else dojo.style(`SSbag-${bag}`, {background: bag, color: 'white'});
+//
+								const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'SSheal');
+//
+								dojo.query(`.SSunit.SSreduced[data-faction='${args.faction}']`, 'SSboard').removeClass('SSdisabled').forEach(node =>
+								{
+									const unit = node.dataset;
+									node = dojo.place(`<div id='SSunit-heal-${unit.id}' class='SSunit SSreduced SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+									dojo.connect(node, 'click', (event) => {
+										dojo.removeClass(event.currentTarget, 'SSreduced');
+										dojo.toggleClass('SSreinforcement', 'disabled', dojo.query(`.SSunit:not(.SSreduced)`, container).length + Object.values(this.bags).reduce((s, v) => s + v, 0) !== args.reinforcement);
+									});
+									this.addTooltipHtml(node.id, _(this.gamedatas.LOCATIONS[unit.location]));
+								});
+//
+								this.bags = {};
+								for (let bag of args.bags)
+								{
+									this.bags[bag] = 0;
+									this.addActionButton(`SSbag-${bag}`, `${this.BAGS[bag]} (${this.bags[bag]})`, (event) => {
+										dojo.stopEvent(event);
+										if (this.bags[bag] < 1 + Math.min(...Object.values(this.bags)) && Object.values(this.bags).reduce((s, v) => s + v, 0) < args.reinforcement)
+										{
+											this.bags[bag] += 1;
+											event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
+										}
+										else
+										{
+											this.bags[bag] = 0;
+											event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
+										}
+										dojo.toggleClass('SSreinforcement', 'disabled', dojo.query(`.SSunit:not(.SSreduced)`, container).length + Object.values(this.bags).reduce((s, v) => s + v, 0) !== args.reinforcement);
+									});
+									if (['yellow', 'white'].includes(bag)) dojo.style(`SSbag-${bag}`, {background: bag, color: 'black'});
+									else dojo.style(`SSbag-${bag}`, {background: bag, color: 'white'});
+								}
 							}
 //
 							this.addActionButton('SSreset', _('Reset'), (event) => {
@@ -362,7 +388,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								dojo.stopEvent(event);
 								if (Object.values(args.units).length === 0)
 								{
-									if (Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
+									if (dojo.query(`.SSunit:not(.SSreduced)`, 'SSheal').length + Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
 										this.bgaPerformAction('actReinforcement', {reinforcement: JSON.stringify(this.bags)});
 								}
 								else
@@ -377,6 +403,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 									else this.confirmationDialog('All units are not deployed', () => this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)}));
 								}
 							});
+							dojo.toggleClass('SSreinforcement', 'disabled', Object.values(args.units).length === 0);
 						}
 						break;
 //

@@ -61,6 +61,7 @@ class seaandsteel extends Table
 //
 		$result = [];
 //
+		$result['LOCATIONS'] = $this->LOCATIONS;
 		$result['CARDS'] = $this->CARDS;
 //
 		$result['players'] = $this->getCollectionFromDb("SELECT player_id, player_score score FROM player");
