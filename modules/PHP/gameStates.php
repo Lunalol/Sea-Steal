@@ -79,17 +79,15 @@ trait gameStates
 // 5. Attestors Counters: Place one attestor marker on each of the boxes that show "2 VP" next to areas #1, 2, 7, 8, and 9 on the board.
 		foreach (Counters::ATTESTORS as $location) Counters::create('attestor', $location);
 // 6. Turn Marker: Place the Turn Marker on the "1 (1492)" box on the Game Turn Track.
-		Counters::create('turn', 1);
+		$this->globals->set('turn', Counters::create('turn', 1));
 // 7. Victory Points Marker: Place the Victory Points Marker on the "0" box on the Victory Point Track.
-		Counters::create('VP', 0);
+		$this->globals->set('VP', Counters::create('VP', 0));
 // 8. Royal Support Marker: Place the Royal Support Marker on the "3" space on your Royal Support
-		Counters::create('royalSupport', 3);
+		$this->globals->set('royalSupport', Counters::create('royalSupport', 3));
 // 9. Divine Grace/Nature Spirits Marker: Place the Divine Grace/Nature Spirits Marker near the Divine Grace/Nature Spirits section
-//		Counters::create('divineGrace', 0);
-//		Counters::create('natureSpirits', 0);
 // 10. Impulse markers: Place both factions Impulse Counters on the “0” box of the Impulse
-		Counters::create('impulseSpanish', 0);
-		Counters::create('impulseIndigenous', 0);
+		$this->globals->set('impulseSpanish', Counters::create('impulseSpanish', 0));
+		$this->globals->set('impulseIndigenous', Counters::create('impulseIndigenous', 0));
 // 11. Setup and Selection of Event Cards. Before the game begins, each player should follow these steps for their Event Cards:
 		{
 //		a) Shuffle your 8 Event Cards belonging to your faction face down without looking at them and leave the card deck aside.
@@ -126,7 +124,7 @@ trait gameStates
 //
 		for ($i = 0; $i < 10; $i++) Counters::create('palisades', 'aside');
 		for ($i = 0; $i < 3; $i++) Counters::create('citadels', 'aside');
-		Counters::create('shipsWear', 'aside');
+		$this->globals->set('shipsWear', Counters::create('shipsWear', 'aside'));
 //
 		$fateCards = [array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn26), array_pop($fateCardsTurn1)];
 		$this->globals->set('fateCards', $fateCards);
@@ -144,7 +142,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('msg', '<span class="SSphase">${LOG} ${turn}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Start of turn'), 'turn' => $turn]);
 //* -------------------------------------------------------------------------------------------------------- */
-		$counter = Counters::getByType('turn')[0];
+		$counter = Counters::get($this->globals->get('turn'));
 		$counter['location'] = $turn;
 		Counters::setLocation($counter['id'], $counter['location']);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -158,11 +156,22 @@ trait gameStates
 		if ($turn === 1)
 		{
 			$bool = $this->CARDS[self::getGameStateValue('fate')][0];
-			if ($bool & DIVINEGRACE) $counter = Counters::create('divineGrace', 0);
-			if ($bool & NATURESPIRITS) $counter = Counters::create('natureSpirits', 0);
+			if ($bool & DIVINEGRACE) $this->globals->set('counter', $counter = Counters::create('divineGrace', 0));
+			if ($bool & NATURESPIRITS) $this->globals->set('counter', $counter = Counters::create('natureSpirits', 0));
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeCounter', '', ['counter' => Counters::get($counter)]);
 //* -------------------------------------------------------------------------------------------------------- */
+		}
+		else
+		{
+			if (!$this->globals->get('used'))
+			{
+				$counter = Counters::get($this->globals->get('counter'));
+				Counters::setType($counter['id'], $counter['type'] = ['divineGrace' => 'natureSpirits', 'natureSpirits' => 'divineGrace'][$counter['type']]);
+//* -------------------------------------------------------------------------------------------------------- */
+				self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
+//* -------------------------------------------------------------------------------------------------------- */
+			}
 		}
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('updateTurn', '<span class="SSphase">${LOG} ${turn}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('End of turn'), 'turn' => $turn]);
@@ -182,7 +191,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 		$this->globals->set('navalDifficulties', $navalDifficulties = boolval($this->CARDS[$fate][0] & NAVALDIFFICULTIES));
 //
-		$counter = Counters::getByType('shipsWear', true)[0];
+		$counter = Counters::get($this->globals->get('shipsWear'));
 		$counter['location'] = $navalDifficulties ? 'shipsWear' : 'aside';
 		Counters::setLocation($counter['id'], $counter['location']);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -219,18 +228,24 @@ trait gameStates
 					$impulse = $this->CARDS[$fate][1];
 //
 					Factions::setImpulse(Factions::SPANISH, $impulse);
-					$impulseSpanish = Counters::getByType('impulseSpanish')[0];
+					$impulseSpanish = Counters::get($this->globals->get('impulseSpanish'));
 					$impulseSpanish['location'] = $impulse;
 					Counters::setLocation($impulseSpanish['id'], $impulseSpanish['location']);
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('placeCounter', '', ['counter' => $impulseSpanish]);
 //* -------------------------------------------------------------------------------------------------------- */
 					Factions::setImpulse(Factions::INDIGENOUS, $impulse);
-					$impulseIndigenous = Counters::getByType('impulseIndigenous')[0];
+					$impulseIndigenous = Counters::get($this->globals->get('impulseIndigenous'));
 					$impulseIndigenous['location'] = $impulse;
 					Counters::setLocation($impulseIndigenous['id'], $impulseIndigenous['location']);
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('placeCounter', '', ['counter' => $impulseIndigenous]);
+//* -------------------------------------------------------------------------------------------------------- */
+					$counter = Counters::get($this->globals->get('counter'));
+					$counter['location'] = $impulse;
+					Counters::setLocation($counter['id'], $counter['location']);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
 //* -------------------------------------------------------------------------------------------------------- */
 				}
 		}
@@ -270,7 +285,7 @@ trait gameStates
 //
 				if ($faction === Factions::SPANISH && array_search('yellow', $reinforcement) !== false)
 				{
-					switch (Counters::getByType('royalSupport')[0]['location'])
+					switch (Counters::get($this->globals->get('royalSupport')))
 					{
 						case 0:
 						case 1:
@@ -359,6 +374,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 		}
 //
+		$this->globals->set('used', false);
 		$this->globals->set('simultaneous', true);
 		$this->globals->set('state', 'impulseCombatPhase');
 //
@@ -423,6 +439,135 @@ trait gameStates
 		}
 		$this->gamestate->nextState('endOfRound');
 	}
+	function stIncursion()
+	{
+		['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
+//
+		$this->gamestate->changeActivePlayer(Factions::getPlayer($faction));
+//
+		if (++$attempts > 3 || sizeof(Units::getAtLocation($to)) === 0)
+		{
+			$this->globals->delete('incursion');
+			return $this->gamestate->nextState('continue');
+		}
+//* -------------------------------------------------------------------------------------------------------- */
+		if ($attempts === 1) self::notifyAllPlayers('msg', clienttranslate('First incursion occurs at <B>${location}</B>'), ['location' => $this->LOCATIONS[$to], 'i18n' => ['location']]);
+//* -------------------------------------------------------------------------------------------------------- */
+		if ($attempts === 2) return $this->gamestate->nextState('incursionContinue');
+//* -------------------------------------------------------------------------------------------------------- */
+		if ($attempts === 3) self::notifyAllPlayers('msg', clienttranslate('Second incursion occurs at <B>${location}</B>'), ['location' => $this->LOCATIONS[$to], 'i18n' => ['location']]);
+//* -------------------------------------------------------------------------------------------------------- */
+		$this->globals->set('dice', [0 => $roll = bga_rand(1, 6)]);
+//
+		$modifier = 0;
+		if (Counters::getAtLocation($to, 'citadels')) $modifier += 1;
+		if (in_array($to, [3, 4, 5, 7]))
+		{
+			foreach (Units::getAtLocation($from, $faction) as $unit)
+			{
+				if (in_array($unit['bag'], ['green', 'blue']))
+				{
+					$modifier -= 1;
+					break;
+				}
+			}
+		}
+//* -------------------------------------------------------------------------------------------------------- */
+		if ($modifier > 0) self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls (+${modifier}) ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $roll, 'modifier' => $modifier]);
+		elseif ($modifier < 0) self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls (-${modifier}) ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $roll, 'modifier' => -$modifier]);
+		else self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $roll]);
+//* -------------------------------------------------------------------------------------------------------- */
+		$this->globals->set('incursion', ['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts]);
+//
+		$counter = Counters::get($this->globals->get('counter'));
+//
+		if ($faction === Factions::INDIGENOUS && $counter && $counter['type'] === 'natureSpirits' && $counter['location'] == Factions::getImpulse(Factions::INDIGENOUS)) return $this->gamestate->nextState('incursionDice');
+		if ($faction === Factions::SPANISH && $counter && $counter['type'] === 'divineGrace' && $counter['location'] == Factions::getImpulse(Factions::SPANISH)) return $this->gamestate->nextState('incursionDice');
+//
+		$this->gamestate->nextState('incursionResolve');
+	}
+	function stIncursionResolve()
+	{
+		['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
+//
+		$modifier = 0;
+		if (Counters::getAtLocation($to, 'citadels')) $modifier += 1;
+		if (in_array($to, [3, 4, 5, 7]))
+		{
+			foreach (Units::getAtLocation($from, $faction) as $unit)
+			{
+				if (in_array($unit['bag'], ['green', 'blue']))
+				{
+					$modifier -= 1;
+					break;
+				}
+			}
+		}
+		$roll = min(max(1, $this->globals->get('dice')[0] + $modifier), 6);
+//
+		if ($attempts === 1)
+		{
+			switch ($roll)
+			{
+				case 1:
+				case 2:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction loses one of their units with the highest Attack Factor.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::activeNextPlayer();
+					break;
+				case 3:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction reduces one of their units with the highest Attack Factor by one level.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::activeNextPlayer();
+					break;
+				case 4:
+				case 5:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect, and the Impulse ends.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					$this->globals->delete('incursion');
+					return $this->gamestate->nextState('continue');
+				case 6:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect on the defender, but the attacking player is affected. One unit with the highest Attack Factor is reduced by one level, and the Impulse ends. If all units are on their reduced sides, eliminate the unit with the highest combat factor.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					break;
+			}
+		}
+		if ($attempts === 3)
+		{
+			switch ($roll)
+			{
+				case 1:
+				case 2:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction loses one of their units with the highest Attack Factor.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::activeNextPlayer();
+					break;
+				case 3:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction reduces one of their units with the highest Attack Factor by one level.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::activeNextPlayer();
+					break;
+				case 4:
+				case 5:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect on the defender, but the attacking unit (from the active faction) with the highest Attack Factor is reduced by one level, and the Impulse ends.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					break;
+				case 6:
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect on the defender, but the attacking player is affected. One unit with the highest Attack Factor is eliminated, and the Impulse ends. If all units are on their reduced sides, eliminate the unit with the highest combat factor.factor.</I>'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+					break;
+			}
+		}
+		return $this->gamestate->nextState('incursionInjuries');
+	}
 	function stCombatPhase()
 	{
 		self::updateVP();
@@ -472,6 +617,7 @@ trait gameStates
 		else if (is_null($hits[$defender])) $hits[$defender] = 0;
 		else if (is_null($hits[$attacker])) $hits[$attacker] = 0;
 //
+		$dices = [];
 		foreach (['attacker' => $attacker, 'defender' => $defender] as $side => $faction)
 		{
 			if (!is_numeric($hits[Factions::other($faction)])) continue;
@@ -479,8 +625,7 @@ trait gameStates
 			foreach ($this->globals->get("combatUnits/$faction") as $id)
 			{
 				$unit = Units::get($id);
-//
-				$roll = bga_rand(1, 6);
+				$dices[$id] = $roll = bga_rand(1, 6);
 //
 				$modifier = 0;
 //
@@ -532,7 +677,9 @@ trait gameStates
 				}
 			}
 		}
+//
 		$this->globals->set('hits', $hits);
+		$this->globals->set('dice', $dices);
 //
 		$this->gamestate->nextState('combatHits');
 //
@@ -617,11 +764,11 @@ trait gameStates
 		}
 		if ($attacker === Factions::SPANISH && sizeof(Units::getAtLocation($location, $defender)) === 0)
 		{
-			$counter = Counters::getByType('royalSupport')[0];
+			$counter = Counters::get($this->globals->get('royalSupport'));
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('msg', clienttranslate('Spanish player is searching for gold'), []);
 //* -------------------------------------------------------------------------------------------------------- */
-			$roll = bga_rand(1, 6);
+			$this->globals->set('dice', [0 => $roll = bga_rand(1, 6)]);
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getActivePlayerName(), 'DICE' => $roll]);
 //* -------------------------------------------------------------------------------------------------------- */

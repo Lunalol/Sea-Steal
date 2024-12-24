@@ -47,6 +47,7 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 						if (from !== to)
 						{
 							if (this.type === RETREAT && dojo.query(`.SSunit[data-location='${to}']:not([data-faction='${this.faction}'])`, 'SSboard').length > 0) continue;
+							if (this.type === INCURSION && dojo.query(`.SSunit[data-location='${to}']:not([data-faction='${this.faction}'])`, 'SSboard').length === 0) continue;
 							if (!locations.has(to))
 							{
 								locations.add(to);
@@ -54,6 +55,8 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 								const node = dojo.place(`<div id='SSaction-${to}' class='SSaction' style='position:absolute;width:10%;height:10%;border-radius:50%;background:${COLORS[this.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
 								dojo.style(node, {left: `${BOARD[to][0] - 5}%`, top: `${BOARD[to][1] - 5}%`});
 								dojo.connect(node, 'click', (event) => {
+									dojo.stopEvent(event);
+									if (this.type === INCURSION) return this.bgagame.bgaPerformAction('actIncursion', {from: from, to: to, shipsWear: JSON.stringify(this.navalDifficulties)});
 									dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
 										if (node.dataset.faction === 'Indigenous' && ![((from + 1 - 1) % 15) + 1, ((from - 1 - 1 + 15) % 15) + 1].includes(to))
 										{

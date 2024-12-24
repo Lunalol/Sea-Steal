@@ -18,61 +18,21 @@ trait gameUtils
 			return true;
 		}
 //
-		switch ($unit['type'])
+		if ($unit['bag'])
 		{
-			case 'Cavalry':
-			case 'Arquebusiers':
-			case 'Swordmen':
-				{
-					$unit['location'] = $unit['bag'];
-					Units::update($unit);
 //* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>yellow</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+			self::notifyAllPlayers('removeUnit', clienttranslate('${UNIT} is removed to ${BAG}'), ['unit' => $unit, 'UNIT' => $unit, 'BAG' => $unit['bag']]);
 //* -------------------------------------------------------------------------------------------------------- */
-				}
-				break;
-//
-			case 'Pawns':
-			case 'Scribes':
-				{
-					$unit['location'] = $unit['bag'];
-					Units::update($unit);
+			$unit['location'] = $unit['bag'];
+			Units::update($unit);
+		}
+		else
+		{
 //* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>red</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+			self::notifyAllPlayers('removeUnit', clienttranslate('${UNIT} is removed from the game'), ['unit' => $unit, 'UNIT' => $unit]);
 //* -------------------------------------------------------------------------------------------------------- */
-				}
-				break;
-//
-			case 'Caciques':
-			case 'Naborias':
-				{
-					$unit['location'] = $unit['bag'];
-					Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>green</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-				}
-				break;
-//
-			case 'Calinagos':
-			case 'Tamas':
-				{
-					$unit['location'] = $unit['bag'];
-					Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>blue</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-				}
-				break;
-//
-			default:
-				{
-					$unit['location'] = 'aside';
-					Units::update($unit);
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed from the game'), ['unit' => $unit, 'UNIT' => $unit]);
-//* -------------------------------------------------------------------------------------------------------- */
-				}
+			$unit['location'] = 'aside';
+			Units::update($unit);
 		}
 		return false;
 	}

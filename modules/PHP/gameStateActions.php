@@ -1,6 +1,8 @@
 <?php
 
+use \Bga\GameFramework\Actions\Types\BoolParam;
 use \Bga\GameFramework\Actions\Types\IntParam;
+use \Bga\GameFramework\Actions\Types\StringParam;
 use \Bga\GameFramework\Actions\Types\JsonParam;
 
 /**
@@ -102,19 +104,40 @@ trait gameStateActions
 //
 		if (!is_null($units))
 		{
+			if (sizeof($units) > $this->possible['reinforcement']) throw new BgaVisibleSystemException("Invalid count: " . sizeof($units) . " <> " . $this->possible['reinforcement']);
+
 			$priority = 0;
 			foreach ($units as $id => $location)
 			{
-				if (!array_key_exists($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
-				$priority = max($priority, $this->possible['locations'][$location]);
-//
 				$unit = Units::get($id);
-				$unit['location'] = $location;
-				Units::update($unit);
+				if (!$unit) throw new BgaVisibleSystemException("Invalid unit: $id");
+//
+				if ($location === 'heal')
+				{
+					if (!$unit['reduced']) throw new BgaVisibleSystemException("Unit already at full health");
+//
+					$unit['reduced'] = 0;
+					Units::update($unit);
 //* -------------------------------------------------------------------------------------------------------- */
-				self::notifyAllPlayers('placeUnit', '', ['unit' => $unit]);
+					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is restored at full health at <B>${location}</B>'), [
+						'unit' => $unit, 'UNIT' => $unit,
+						'location' => $this->LOCATIONS[$unit['location']], 'i18n' => ['location']]);
 //* -------------------------------------------------------------------------------------------------------- */
-				if (Units::overstacking($location, $faction) > 3) throw new BgaUserException(self::_("Overstacking"));
+				}
+				else
+				{
+					if (!array_key_exists($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
+					$priority = max($priority, $this->possible['locations'][$location]);
+//
+					$unit['location'] = $location;
+					Units::update($unit);
+//* -------------------------------------------------------------------------------------------------------- */
+					self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is deployed at <B>${location}</B>'), [
+						'unit' => $unit, 'UNIT' => $unit,
+						'location' => $this->LOCATIONS[$unit['location']], 'i18n' => ['location']]);
+//* -------------------------------------------------------------------------------------------------------- */
+					if (Units::overstacking($location, $faction) > 3) throw new BgaUserException(self::_("Overstacking"));
+				}
 			}
 //
 			if ($priority > min(Units::reinforcement($faction))) throw new BgaUserException(self::_("Priorities not respected"));
@@ -137,6 +160,8 @@ trait gameStateActions
 //
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 //
+		$this->globals->delete('activeArea');
+//
 		$this->gamestate->nextState('impulseCombatPhase');
 	}
 	function actActivation(#[IntParam(min: 1, max: 15)] int $location)
@@ -154,6 +179,63 @@ trait gameStateActions
 		$this->globals->set('activeArea', $location);
 //
 		$this->gamestate->nextState('movementPhase');
+	}
+	function actIncursion(#[IntParam] int $from, #[IntParam] int $to, #[JsonParam] array $shipsWear = [])
+	{
+		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+//
+		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
+		if (!in_array($from, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $from");
+//
+		foreach ($this->possible['locations'] as $otherLocation) if (Units::overstacking($otherLocation, $faction) > 3) throw new BgaUserException(self::_("If a player has any over stacked areas, they must compulsory activate one of those areas during their Impulse Phase"));
+//
+		if ($navalDifficulties = $this->globals->get('navalDifficulties'))
+		{
+			if (array_key_exists($from, $shipsWear) && is_int($shipsWear[$from]))
+			{
+				$unit = Units::get($id = $shipsWear[$from]);
+//
+				if (!$unit) throw new BgaVisibleSystemException("Invalid unit: $id");
+				if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+				if (intval($unit['location']) !== $from) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+//
+				self::reduceUnit($unit);
+//
+				$navalDifficulties = false;
+			}
+		}
+//
+		if ($navalDifficulties && !in_array($to, [(($from + 1 - 1) % 15) + 1, (($from - 1 - 1 + 15) % 15) + 1])) throw new BgaVisibleSystemException("Naval difficulties");
+//
+		$this->globals->set('incursion', ['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => 0]);
+//
+		$this->gamestate->nextState('incursion');
+	}
+	function actIncursionInjuries(#[IntParam] int $id)
+	{
+		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+//
+		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
+		if (!array_key_exists($id, $this->possible['units'])) throw new BgaVisibleSystemException("Invalid unit: $id");
+		if (!($unit = Units::get($id))) throw new BgaVisibleSystemException("Invalid unit: $id");
+//
+		self::reduceUnit($unit, $this->possible['hits']);
+//
+		if ($this->possible['attacker']) $this->gamestate->nextState('continue');
+		else $this->gamestate->nextState('incursion');
+	}
+	function actIncursionContinue(#[BoolParam] $continue)
+	{
+		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+//
+		['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
+//
+		$attempts++;
+		if (!$continue) $attempts++;
+//
+		$this->globals->set('incursion', ['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts]);
+//
+		$this->gamestate->nextState('incursion');
 	}
 	function actBuildPalisades(#[JsonParam] array $locations)
 	{
@@ -214,7 +296,7 @@ trait gameStateActions
 			$unit['location'] = $unit['bag'];
 			Units::update($unit);
 //* -------------------------------------------------------------------------------------------------------- */
-			self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>red</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+			self::notifyAllPlayers('removeUnit', clienttranslate('${UNIT} is removed to ${BAG}'), ['unit' => $unit, 'UNIT' => $unit, 'BAG' => $unit['bag']]);
 //* -------------------------------------------------------------------------------------------------------- */
 //
 			$palisades = Counters::getAtLocation($location, 'palisades');
@@ -253,7 +335,7 @@ trait gameStateActions
 		$unit['location'] = $unit['bag'];
 		Units::update($unit);
 //* -------------------------------------------------------------------------------------------------------- */
-		self::notifyAllPlayers('placeUnit', clienttranslate('${UNIT} is removed to <B>red</B> bag'), ['unit' => $unit, 'UNIT' => $unit]);
+		self::notifyAllPlayers('removeUnit', clienttranslate('${UNIT} is removed to ${BAG}'), ['unit' => $unit, 'UNIT' => $unit, 'BAG' => $unit['bag']]);
 //* -------------------------------------------------------------------------------------------------------- */
 		Counters::destroy($attestor);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -263,7 +345,7 @@ trait gameStateActions
 //
 		$this->gamestate->nextState('continue');
 	}
-	function actMovementPhase(#[JsonParam] array $units, #[JsonParam] array $shipsWear)
+	function actMovementPhase(#[JsonParam] array $units, #[JsonParam] array $shipsWear = [])
 	{
 		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
 //
@@ -409,5 +491,46 @@ trait gameStateActions
 			$this->gamestate->setPlayersMultiactive([$player_id], 'newRoundOfCombat', true);
 		}
 		else $this->gamestate->setPlayerNonMultiactive($player_id, 'newRoundOfCombat');
+	}
+	function actDivineGraceNatureSpirits(#[StringParam] string $type, #[JsonParam] array|null $dice)
+	{
+		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+//
+		if ($type !== 'pass')
+		{
+			$rolls = $this->globals->get('dice');
+//* -------------------------------------------------------------------------------------------------------- */
+			if ($faction === Factions::INDIGENOUS) self::notifyAllPlayers('msg', clienttranslate('${player_name} uses <B>Nature Spirits</B>'), ['player_name' => self::getCurrentPlayerName()]);
+			if ($faction === Factions::SPANISH) self::notifyAllPlayers('msg', clienttranslate('${player_name} uses <B>Divine Grace</B>'), ['player_name' => self::getCurrentPlayerName()]);
+//* -------------------------------------------------------------------------------------------------------- */
+			$this->globals->set('used', true);
+//
+			$counter = Counters::get($this->globals->get('counter'));
+			Counters::setLocation($counter['id'], $counter['location'] = Factions::getImpulse($faction) - 1);
+			Counters::setType($counter['id'], $counter['type'] = ['divineGrace' => 'natureSpirits', 'natureSpirits' => 'divineGrace'][$counter['type']]);
+//* -------------------------------------------------------------------------------------------------------- */
+			self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
+//* -------------------------------------------------------------------------------------------------------- */
+			switch ($type)
+			{
+//
+				case 're-roll':
+//* -------------------------------------------------------------------------------------------------------- */
+					foreach ($dice as $die) self::notifyAllPlayers('msg', clienttranslate('${player_name} re-rolls ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $rolls[$die] = bga_rand(1, 6)]);
+//* -------------------------------------------------------------------------------------------------------- */
+					break;
+//
+				case '-1':
+//* -------------------------------------------------------------------------------------------------------- */
+					foreach ($dice as $die) self::notifyAllPlayers('msg', clienttranslate('${player_name} modifies die ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $rolls[$die] = max(0, $rolls[$die] - 1)]);
+//* -------------------------------------------------------------------------------------------------------- */
+					break;
+//
+				default: throw new BgaVisibleSystemException("Invalid type: $type");
+			}
+//
+			$this->globals->set('dice', $rolls);
+		}
+		$this->gamestate->nextState('continue');
 	}
 }

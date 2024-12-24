@@ -118,6 +118,18 @@ define(["dojo", "dojo/_base/declare"], function (dojo, declare)
 //
 			this.scrollArea.scrollTo(Math.round((x + sX) * (scale / oldScale) - x), Math.round((y + sY) * (scale / oldScale) - y));
 		},
+		focus(location)
+		{
+			if (!g_archive_mode)
+			{
+				const zoom = parseFloat(this.board.scale);
+				console.log({left: (BOARD[location][0] * zoom - 50) * this.scrollArea.clientWidth / 100, top: (BOARD[location][1] * zoom - 50) * this.scrollArea.clientHeight / 100, behavior: 'smooth'});
+				this.scrollArea.scrollTo({
+					left: BOARD[location][0] * zoom * this.board.clientWidth / 100 - this.scrollArea.clientWidth / 2,
+					top: BOARD[location][1] * zoom * this.board.clientHeight / 100 - this.scrollArea.clientHeight / 2,
+					behavior: 'smooth'});
+			}
+		},
 		wheel: function (event)
 		{
 			if (event.ctrlKey)

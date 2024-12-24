@@ -192,7 +192,7 @@ class seaandsteel extends Table
 	}
 	function updateVP()
 	{
-		$counter = Counters::getByType('VP')[0];
+		$counter = Counters::get($this->globals->get('VP'));
 		$counter['location'] = max(0, min(Factions::VP(), 20));
 		Counters::setLocation($counter['id'], $counter['location']);
 //* -------------------------------------------------------------------------------------------------------- */

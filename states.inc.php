@@ -131,7 +131,7 @@ $machinestates = [
 		"name" => "startOfImpulse",
 		"type" => "game",
 		"action" => "stStartOfImpulse",
-		"transitions" => ["action" => 410, "movementPhase" => 420, "impulseCombatPhase" => 440, "victoryCheckPhase" => 500]
+		"transitions" => ["action" => 410, "movementPhase" => 420, "impulseCombatPhase" => 480, "victoryCheckPhase" => 500]
 	],
 	410 => [
 		"name" => "action",
@@ -140,8 +140,8 @@ $machinestates = [
 		'type' => 'activeplayer',
 		'args' => 'argAction',
 		"action" => "stAction",
-		'possibleactions' => ['actActivation', 'actBuildPalisades', 'actBuildCitadels', 'actPass'],
-		"transitions" => ["continue" => 410, "movementPhase" => 420, "impulseCombatPhase" => 440]
+		'possibleactions' => ['actActivation', 'actIncursion', 'actBuildPalisades', 'actBuildCitadels', 'actPass'],
+		"transitions" => ["continue" => 410, "movementPhase" => 420, "incursion" => 430, "impulseCombatPhase" => 480]
 	],
 	420 => [
 		"name" => "movementPhase",
@@ -150,9 +150,49 @@ $machinestates = [
 		'type' => 'activeplayer',
 		'args' => 'argMovementPhase',
 		'possibleactions' => ['actScribe', 'actMovementPhase'],
-		"transitions" => ["continue" => 420, "impulseCombatPhase" => 440]
+		"transitions" => ["continue" => 420, "impulseCombatPhase" => 480]
+	],
+	430 => [
+		"name" => "incursion",
+		'description' => clienttranslate('Incursion'),
+		"type" => "game",
+		"action" => "stIncursion",
+		"transitions" => ["incursionDice" => 435, "incursionContinue" => 450, "incursionResolve" => 440, 'continue' => 490]
+	],
+	435 => [
+		"name" => "divineGraceNatureSpirits",
+		'description' => clienttranslate('Opponent can use Divine Grace / Nature Spirits'),
+		'descriptionmyturn' => clienttranslate('${you} can use Divine Grace / Nature Spirits'),
+		'type' => 'activeplayer',
+		'args' => 'argDivineGraceNatureSpirits',
+		'possibleactions' => ['actDivineGraceNatureSpirits'],
+		"transitions" => ["continue" => 440]
 	],
 	440 => [
+		"name" => "incursionResolve",
+		'description' => clienttranslate('Incursion'),
+		"type" => "game",
+		"action" => "stIncursionResolve",
+		"transitions" => ["incursionInjuries" => 445, "continue" => 490]
+	],
+	445 => [
+		"name" => "incursionInjuries",
+		'description' => clienttranslate('Opponent must apply first incursion injuries'),
+		'descriptionmyturn' => clienttranslate('${you} must apply first incursion injuries'),
+		'type' => 'activeplayer',
+		'args' => 'argIncursionInjuries',
+		'possibleactions' => ['actIncursionInjuries'],
+		"transitions" => ["incursion" => 430, "continue" => 490]
+	],
+	450 => [
+		"name" => "incursionContinue",
+		'description' => clienttranslate('Opponent must chooce to attempt a second incursion or not'),
+		'descriptionmyturn' => clienttranslate('${you} must chooce to attempt a second incursion or not'),
+		'type' => 'activeplayer',
+		'possibleactions' => ['actIncursionContinue'],
+		"transitions" => ["incursion" => 430]
+	],
+	480 => [
 		"name" => "impulseCombatPhase",
 		'description' => clienttranslate('Opponent must engage combat'),
 		'descriptionmyturn' => clienttranslate('${you} must engage combat'),
@@ -160,9 +200,9 @@ $machinestates = [
 		'args' => 'argCombatPhase',
 		"action" => "stCombatPhase",
 		'possibleactions' => ['actCombat'],
-		"transitions" => ["combat" => 1000, "continue" => 450]
+		"transitions" => ["combat" => 1000, "continue" => 490]
 	],
-	450 => [
+	490 => [
 		"name" => "endOfimpulse",
 		"type" => "game",
 		"action" => "stEndOfimpulse",
@@ -217,6 +257,6 @@ $machinestates = [
 		"name" => "endOfCombat",
 		"type" => "game",
 		"action" => "stEndOfCombat",
-		"transitions" => ["goldSearch" => 1100, "eventCombatPhase" => 240, "reinforcementCombatPhase" => 330, "impulseCombatPhase" => 440]
+		"transitions" => ["goldSearch" => 1100, "eventCombatPhase" => 240, "reinforcementCombatPhase" => 330, "impulseCombatPhase" => 480]
 	],
 ];

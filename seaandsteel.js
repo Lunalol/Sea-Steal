@@ -104,6 +104,39 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					}
 					break;
 //
+				case 'incursionFrom':
+//
+					{
+						for (let location of state.args.locations)
+						{
+							const node = dojo.place(`<div id='SSaction-${location}' class='SSaction' style='background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+							dojo.style(node, {left: `${BOARD[location][0] - 5}%`, top: `${BOARD[location][1] - 5}%`});
+							dojo.connect(node, 'click', (event) => {
+								dojo.stopEvent(event);
+								this.setClientState('incursionTo', {descriptionmyturn: _('${you} can select which area to attack'), args: {faction: state.args.faction, location: location, navalDifficulties: state.args.navalDifficulties}});
+							});
+						}
+					}
+					break;
+//
+				case 'incursionTo':
+//
+					{
+						const node = dojo.place(`<div id='SSaction-${state.args.location}' class='SSaction' style='left:${BOARD[state.args.location][0] - 5}%;top:${BOARD[state.args.location][1] - 5}%;background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+					}
+					break;
+//
+				case 'incursionInjuries':
+//
+					{
+						if (state.args.hits === 1) this.gamedatas.gamestate.descriptionmyturn = _('${you} must reduce one of your units with the highest Attack Factor');
+						if (state.args.hits === 2) this.gamedatas.gamestate.descriptionmyturn = _('${you} must eliminate one of your units with the highest Attack Factor');
+						this.updatePageTitle();
+//
+						const node = dojo.place(`<div id='SSaction-${state.args.location}' class='SSaction' style='left:${BOARD[state.args.location][0] - 5}%;top:${BOARD[state.args.location][1] - 5}%;background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+					}
+					break;
+//
 				case 'buildPalisades':
 //
 					{
@@ -273,7 +306,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 									dojo.toggleClass(node, 'SSselected');
 									if (event.detail > 1) dojo.query('.SSunit', 'SSunitContainer').addClass('SSselected');
 								});
-								dojo.toggleClass(node, 'SSselected');
+								if (!args.overStacking) dojo.toggleClass(node, 'SSselected');
 							}
 //
 							for (let location of args.event.locations)
@@ -333,29 +366,13 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 									dojo.query('.SSunit.SSselected', 'SSunitContainer').forEach((node) => {
 										dojo.addClass(this.placeUnit({id: node.dataset.id, faction: node.dataset.faction, type: node.dataset.type, location: location}), 'SSprovisional');
 										dojo.destroy(node);
+										dojo.toggleClass('SSreinforcement', 'disabled', dojo.query('.SSunit:not(.SSreduced)', 'SSheal').length + dojo.query('.SSunit.SSprovisional', 'SSboard').length > args.reinforcement);
 									});
 								});
 							}
 //
 							if (Object.values(args.units).length === 0)
 							{
-								this.addActionButton('SSheal', _('Flip to full strength'), (event) => {
-									dojo.stopEvent(event);
-								});
-//
-								const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'SSheal');
-//
-								dojo.query(`.SSunit.SSreduced[data-faction='${args.faction}']`, 'SSboard').removeClass('SSdisabled').forEach(node =>
-								{
-									const unit = node.dataset;
-									node = dojo.place(`<div id='SSunit-heal-${unit.id}' class='SSunit SSreduced SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
-									dojo.connect(node, 'click', (event) => {
-										dojo.removeClass(event.currentTarget, 'SSreduced');
-										dojo.toggleClass('SSreinforcement', 'disabled', dojo.query(`.SSunit:not(.SSreduced)`, container).length + Object.values(this.bags).reduce((s, v) => s + v, 0) !== args.reinforcement);
-									});
-									this.addTooltipHtml(node.id, _(this.gamedatas.LOCATIONS[unit.location]));
-								});
-//
 								this.bags = {};
 								for (let bag of args.bags)
 								{
@@ -372,10 +389,34 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 											this.bags[bag] = 0;
 											event.currentTarget.innerHTML = `${this.BAGS[bag]} (${this.bags[bag]})`;
 										}
-										dojo.toggleClass('SSreinforcement', 'disabled', dojo.query(`.SSunit:not(.SSreduced)`, container).length + Object.values(this.bags).reduce((s, v) => s + v, 0) !== args.reinforcement);
+										dojo.toggleClass('SSreinforcement', 'disabled', Object.values(this.bags).reduce((s, v) => s + v, 0) !== args.reinforcement);
 									});
 									if (['yellow', 'white'].includes(bag)) dojo.style(`SSbag-${bag}`, {background: bag, color: 'black'});
 									else dojo.style(`SSbag-${bag}`, {background: bag, color: 'white'});
+								}
+							}
+							else
+							{
+								const reduced = dojo.query(`.SSunit.SSreduced[data-faction='${args.faction}']`, 'SSboard');
+//
+								if (reduced.length > 0)
+								{
+									this.addActionButton('SSheal', _('Flip to full strength'), (event) => {
+										dojo.stopEvent(event);
+									});
+//
+									const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'SSheal');
+//
+									reduced.removeClass('SSdisabled').forEach(node =>
+									{
+										const unit = node.dataset;
+										node = dojo.place(`<div id='SSunit-heal-${unit.id}' class='SSunit SSreduced SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+										dojo.connect(node, 'click', (event) => {
+											dojo.toggleClass(event.currentTarget, 'SSreduced');
+											dojo.toggleClass('SSreinforcement', 'disabled', dojo.query('.SSunit:not(.SSreduced)', 'SSheal').length + dojo.query('.SSunit.SSprovisional', 'SSboard').length > args.reinforcement);
+										});
+										this.addTooltipHtml(node.id, _(this.gamedatas.LOCATIONS[unit.location]));
+									});
 								}
 							}
 //
@@ -388,16 +429,22 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								dojo.stopEvent(event);
 								if (Object.values(args.units).length === 0)
 								{
-									if (dojo.query(`.SSunit:not(.SSreduced)`, 'SSheal').length + Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
+									if (Object.values(this.bags).reduce((s, v) => s + v, 0) === args.reinforcement)
 										this.bgaPerformAction('actReinforcement', {reinforcement: JSON.stringify(this.bags)});
 								}
 								else
 								{
-									const units = dojo.query('.SSunit.SSprovisional', 'SSboard').reduce((L, node) => {
+									let units = dojo.query('.SSunit.SSprovisional', 'SSboard').reduce((L, node) => {
 										L[node.dataset.id] = node.dataset.location;
 										return L;
 									}, {});
 									if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
+//
+									units = dojo.query('.SSunit:not(.SSreduced)', 'SSheal').reduce((L, node) => {
+										L[node.dataset.id] = 'heal';
+										return L;
+									}, units);
+//
 									const nodes = dojo.query('.SSunit', 'SSunitContainer');
 									if (nodes.length === 0) this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)});
 									else this.confirmationDialog('All units are not deployed', () => this.bgaPerformAction('actReinforcement', {units: JSON.stringify(units)}));
@@ -413,6 +460,11 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							this.addActionButton('SSactivation', _('Activate an area'), (event) => {
 								dojo.stopEvent(event);
 								this.setClientState('activation', {descriptionmyturn: _('${you} can activate an area')});
+							});
+//
+							this.addActionButton('SSincursion', _('Incursion'), (event) => {
+								dojo.stopEvent(event);
+								this.setClientState('incursionFrom', {descriptionmyturn: _('${you} can select an area for incursion')});
 							});
 //
 							if (args.palisades) this.addActionButton('SSbuildPalisades', _('Build palisades'), (event) => {
@@ -440,6 +492,76 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								this.restoreServerGameState();
 							}, null, false, 'gray');
 						}
+						break;
+//
+					case 'incursionFrom':
+//
+						{
+							this.addActionButton('SScancel', _('Cancel'), (event) => {
+								dojo.stopEvent(event);
+								this.restoreServerGameState();
+							}, null, false, 'gray');
+						}
+						break;
+//
+					case 'incursionTo':
+//
+						{
+							this.movement = new Movement(this, INCURSION, args.faction, args.location, args.navalDifficulties);
+//
+							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
+							dojo.query(`.SSunit[data-location='${args.location}']`, 'SSboard').forEach(node =>
+							{
+								const unit = node.dataset;
+//
+								node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+								dojo.connect(node, 'click', (event) => {
+									dojo.stopEvent(event);
+								});
+//								dojo.toggleClass(node, 'SSselected');
+							});
+//
+							const node = dojo.place(`<div id='SSshipsWear' class='SScounter action-button' data-type='shipsWear'></div>`, 'generalactions');
+							dojo.toggleClass(node, 'SSdisabled', args.navalDifficulties !== true);
+							dojo.connect(node, 'click', (event) =>
+							{
+								dojo.stopEvent(event);
+								if (!dojo.hasClass(node, 'SSdisabled')) this.movement.shipsWear(args.faction, args.location);
+							}
+							);
+							this.addTooltip(node.id,
+									_('Naval difficulties: both players are affected but the Indigenous player is only affected if moving to a non-contiguous area by using rebel units. For each naval movement to a non-contiguous area (including drag and drop movements) the player should reduce one unit in the origin area from its full-strength to its reduced strength side or eliminate one unit if it is by its reduced side already.'),
+									_('Ships wear')
+									);
+//
+							this.movement.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
+//
+							this.addActionButton('SScancel', _('Cancel'), (event) => {
+								dojo.stopEvent(event);
+								this.restoreServerGameState();
+							}, null, false, 'gray');
+						}
+						break;
+//
+					case 'incursionInjuries':
+//
+						const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
+						for (let unit of Object.values(args.units))
+						{
+							node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+							dojo.connect(node, 'click', (event) => {
+								dojo.stopEvent(event);
+//								$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
+								this.bgaPerformAction('actIncursionInjuries', {id: unit.id});
+							});
+						}
+						break;
+//
+					case 'incursionContinue':
+//
+						this.addActionButton('SSincursionContinueYes', _('Continue'), (event) => this.bgaPerformAction('actIncursionContinue', {continue: true}));
+						this.addActionButton('SSincursionContinueNo', _('Abort'), (event) => this.bgaPerformAction('actIncursionContinue', {continue: false}));
+//
 						break;
 //
 					case 'buildPalisades':
@@ -689,6 +811,18 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						}
 						break;
 //
+					case 'divineGraceNatureSpirits':
+//
+						{
+							for (let [unit, die] of Object.entries(args))
+							{
+								this.addActionButton('SSreroll', _('Re-roll die'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: 're-roll', dice: '[0]'}), null, false, 'red');
+								this.addActionButton('SSsubstract', _('Subtract 1 from value'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: '-1', dice: '[0]'}), null, false, 'red');
+								this.addActionButton('SSpass', _('Do nothing'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: 'pass'}));
+							}
+						}
+						break;
+//
 				}
 			}
 		},
@@ -700,6 +834,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			dojo.subscribe('event', (notif) => dojo.query(`.SScard[data-id='${notif.args.card}']`, 'SShand').remove());
 //
 			dojo.subscribe('placeUnit', (notif) => this.placeUnit(notif.args.unit));
+			dojo.subscribe('removeUnit', (notif) => this.removeUnit(notif.args.unit));
+//
 			dojo.subscribe('placeCounter', (notif) => this.placeCounter(notif.args.counter));
 			dojo.subscribe('removeCounter', (notif) => this.removeCounter(notif.args.counter));
 //
@@ -708,6 +844,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 		setSynchronous()
 		{
 			this.notifqueue.setSynchronous('placeUnit', DELAY);
+			this.notifqueue.setSynchronous('removeUnit', DELAY);
+//
 			this.notifqueue.setSynchronous('placeCounter', DELAY);
 			this.notifqueue.setSynchronous('removeCounter', DELAY);
 		},
@@ -723,10 +861,12 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 <div class='SScard' data-id='${args.EVENTS[1]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[1] / 53 * 100}%'></div>
 </div>
 `;
+				if ('BAG' in args)
+					args.BAG = BAG.replace('none', args.BAG);
 				if ('DICE' in args)
 					args.DICE = `<span class='SSdice' style='background-position-x:-${30 * (args.DICE - 1)}px'></span>`;
 				if ('UNIT' in args)
-					args.UNIT = `<div class='SSunit ${ +args.UNIT.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${args.UNIT.id}' data-faction='${args.UNIT.faction}' data-type='${args.UNIT.type}'></div>`;
+					args.UNIT = `<div onclick='dojo.stopEvent(event);gameui.board.focus(+this.dataset.location);' class='SSunit ${ +args.UNIT.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${args.UNIT.id}' data-faction='${args.UNIT.faction}' data-type='${args.UNIT.type}' data-location='${args.UNIT.location}'></div>`;
 				if ('PALISADE' in args) args.PALISADE = `<div class='SScounter' data-id='${args.PALISADE.id}' data-type='${args.PALISADE.type}' data-location='${args.PALISADE.location}'></div>`;
 				if ('CITADEL' in args) args.CITADEL = `<div class='SScounter' data-id='${args.CITADEL.id}' data-type='${args.CITADEL.type}' data-location='${args.CITADEL.location}'></div>`;
 			}
@@ -786,6 +926,13 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			else this.arrange(unit.location, unit.faction);
 //
 			return node;
+		},
+		removeUnit: function (unit)
+		{
+			console.log('removeUnit', unit);
+//
+			const node = $(`SSunit-${unit.id}`);
+			if (node) dojo.destroy(node);
 		},
 		arrange: function (location, faction)
 		{
@@ -893,9 +1040,10 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 						{
 							node = dojo.place(`<div id='SScounter-${counter.id}' tabindex='0' class='SScounter' data-id='${counter.id}' data-type='${counter.type}' data-location='${counter.location}'></div>`, 'SSboard');
 						}
-						dojo.style(node, {left: `${IMPULSE[counter.location][0] - 1.5}%`, top: `${IMPULSE[counter.location][1] - 1.5}%`});
+						dojo.style(node, {left: `${IMPULSE[counter.location][0] - 1.5}%`, top: `${IMPULSE[counter.location][1] - 1.5 + 5}%`});
+						node.dataset.type = counter.type;
 						this.addTooltip(node.id,
-								_('This track represents the opposing forces of divine influence throughout the game. A countercounter is is placed on either the "Divine Grace" side (favoring the Spanish) or the "Nature Spirits" side (favoring the Indigenous players). This can impact various aspects of the game, such as combat outcomes or incursion attempts.'),
+								_('This track represents the opposing forces of divine influence throughout the game. A counter is is placed on either the "Divine Grace" side (favoring the Spanish) or the "Nature Spirits" side (favoring the Indigenous players). This can impact various aspects of the game, such as combat outcomes or incursion attempts.'),
 								_('Divine Grace / Nature Spirits')
 								);
 					}

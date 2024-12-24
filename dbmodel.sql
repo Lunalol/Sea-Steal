@@ -11,6 +11,6 @@ CREATE TABLE IF NOT EXISTS `units` (
 
 CREATE TABLE IF NOT EXISTS `counters` (
 	`id` INT(2) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`type` ENUM('turn', 'VP', 'impulseSpanish', 'impulseIndigenous', 'royalSupport', 'divineGrace', 'naturespirits', 'palisades', 'citadels', 'shipsWear', 'attestor', 'area'),
+	`type` ENUM('turn', 'VP', 'impulseSpanish', 'impulseIndigenous', 'royalSupport', 'divineGrace', 'natureSpirits', 'palisades', 'citadels', 'shipsWear', 'attestor', 'area'),
 	`location` VARCHAR(20), `status` JSON
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

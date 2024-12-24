@@ -40,4 +40,8 @@ class Counters extends APP_GameClass
 	{
 		self::dBquery("UPDATE counters SET location = '$location' WHERE id = $id");
 	}
+	static function setType(int $id, string $type)
+	{
+		self::dBquery("UPDATE counters SET type = '$type' WHERE id = $id");
+	}
 }
