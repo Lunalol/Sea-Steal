@@ -911,7 +911,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			console.log('notifications subscriptions setup');
 //
 			dojo.subscribe('fate', (notif) => this.fate(notif.args.fate));
-			dojo.subscribe('event', (notif) => dojo.query(`.SScard[data-id='${notif.args.card}']`, 'SShand').remove());
+			dojo.subscribe('event', (notif) => dojo.query(`.SScard[data-id='${notif.args.card}']`, 'SShands').remove());
 //
 			dojo.subscribe('placeUnit', (notif) => this.placeUnit(notif.args.unit));
 			dojo.subscribe('removeUnit', (notif) => this.removeUnit(notif.args.unit));

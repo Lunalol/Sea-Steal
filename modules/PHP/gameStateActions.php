@@ -17,7 +17,7 @@ trait gameStateActions
 	}
 	function actSecretChoice(#[JsonParam] array $choices)
 	{
-		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
+		$player_id = self::getCurrentPlayerId();
 		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
 //
 		foreach ($choices as $faction => $card)
