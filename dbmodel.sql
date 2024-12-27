@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS `factions` (
-	`faction` ENUM ('Indigenous', 'Spanish'), `player_id` INT,`impulse` INT DEFAULT 0 , `status` JSON
+	`faction` ENUM ('Indigenous', 'Spanish'), `player_id` INT,`active` BOOL DEFAULT 0 ,`impulse` INT DEFAULT 0 , `status` JSON
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `units` (

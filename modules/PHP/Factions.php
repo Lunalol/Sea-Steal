@@ -23,10 +23,6 @@ class Factions extends APP_GameClass
 	{
 		return self::getUniqueValueFromDB("SELECT player_id FROM factions WHERE faction = '$faction'");
 	}
-	static function getFaction(int $player_id): string
-	{
-		return self::getUniqueValueFromDB("SELECT faction FROM factions WHERE player_id = $player_id");
-	}
 	static function getImpulse(string $faction): int
 	{
 		return intval(self::getUniqueValueFromDB("SELECT impulse FROM factions WHERE faction = '$faction'"));

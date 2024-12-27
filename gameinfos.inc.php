@@ -12,7 +12,7 @@ $gameinfos = [
 	'publisher_bgg_id' => 56050,
 	'bgg_id' => 420980,
 //
-	'players' => [2],
+	'players' => [1, 2],
 	'estimated_duration' => 30,
 	'is_beta' => 1,
 //

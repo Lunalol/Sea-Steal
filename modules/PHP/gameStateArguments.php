@@ -6,10 +6,16 @@
  */
 trait gameStateArguments
 {
+	function argSecretChoice()
+	{
+		$this->possible = [];
+		foreach (Factions::getAlldatas() as $faction => $player_id) $this->possible[$player_id][] = $faction;
+//
+		return ['_private' => $this->possible];
+	}
 	function argEventResolution()
 	{
-		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		$card = $this->globals->get("event/$faction");
 //
 		return $this->possible = [
@@ -19,7 +25,7 @@ trait gameStateArguments
 	}
 	function argReinforcement()
 	{
-		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
+		$faction = $this->globals->get('faction');
 //
 		$bags = [Factions::INDIGENOUS => ['green', 'blue', 'white'], Factions::SPANISH => ['yellow', 'red']][$faction];
 		$units = Units::getAtLocation('event');
@@ -32,7 +38,7 @@ trait gameStateArguments
 	}
 	function argAction()
 	{
-		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
+		$faction = $this->globals->get('faction');
 //
 		$palisades = $faction === Factions::SPANISH ? self::getObjectListFromDB("SELECT DISTINCT location FROM units WHERE"
 				. " faction = '$faction' AND"
@@ -53,7 +59,7 @@ trait gameStateArguments
 	}
 	function argIncursionInjuries()
 	{
-		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
+		$faction = $this->globals->get('faction');
 //
 		['from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
 //
@@ -72,9 +78,12 @@ trait gameStateArguments
 		}
 		$roll = min(max(1, $this->globals->get('dice')[0] + $modifier), 6);
 //
-		$location = $to;
-		if ($attempts === 1 && $roll == 6) $location = $from;
-		if ($attempts === 3 && $roll >= 4) $location = $from;
+		$location = $from;
+		if (!(($attempts === 1 && $roll == 6) || ($attempts === 3 && $roll >= 4)))
+		{
+			$location = $to;
+			$faction = Factions::other($faction);
+		}
 //
 		$units = Units::getAtLocation($location);
 //
@@ -88,58 +97,53 @@ trait gameStateArguments
 	}
 	function argMovementPhase()
 	{
-		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
-//
-		$location = $this->globals->get('activeArea');
-//
-		return $this->possible = ['faction' => $faction, 'navalDifficulties' => $this->globals->get('navalDifficulties'), 'location' => $location];
+		return $this->possible = ['faction' => $this->globals->get('faction'), 'navalDifficulties' => $this->globals->get('navalDifficulties'), 'location' => $this->globals->get('activeArea')];
 	}
 	function argCombatPhase()
 	{
-		$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
-//
-		return $this->possible = ['faction' => $faction, 'locations' => Units::getCombatLocations()];
+		return $this->possible = ['faction' => $this->globals->get('faction'), 'locations' => Units::getCombatLocations()];
 	}
 	function argCombatSelectUnits()
 	{
 		$location = $this->globals->get('location');
 //
-		$attacker = $this->globals->get('attacker');
-		$defender = $this->globals->get('defender');
+		$this->possible = [];
+		foreach (Factions::getAlldatas() as $faction => $player_id)
+		{
+			$units = Units::getAtLocation($location, $faction);
+			$this->possible[$player_id][$faction] = ['units' => sizeof($units) > 3 ? array_values($units) : []];
+		}
+
 //
-		return ['location' => $location, '_private' => $this->possible = [
-			Factions::getPlayer($attacker) => ['faction' => $attacker, 'units' => Units::getAtLocation($location, $attacker)],
-			Factions::getPlayer($defender) => ['faction' => $defender, 'units' => Units::getAtLocation($location, $defender)],
-		]];
+		return ['location' => $location, '_private' => $this->possible];
 	}
 	function argCombatHits()
 	{
 		$location = $this->globals->get('location');
 //
-		$attacker = $this->globals->get('attacker');
-		$defender = $this->globals->get('defender');
-//
 		$hits = $this->globals->get('hits');
 //
-		return ['location' => $location, '_private' => $this->possible = [
-			Factions::getPlayer($attacker) => ['faction' => $attacker, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$attacker")), 'hits' => $hits[$attacker]],
-			Factions::getPlayer($defender) => ['faction' => $defender, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$defender")), 'hits' => $hits[$defender]],
-		]];
+		$this->possible = [];
+		foreach (Factions::getAlldatas() as $faction => $player_id) if ($hits[$faction] !== 'done' && $hits[$faction] > 0) $this->possible[$player_id][$faction] = ['units' => array_map('Units::get', $this->globals->get("combatUnits/$faction")), 'hits' => $hits[$faction]];
+//
+		return ['location' => $location, '_private' => $this->possible];
 	}
-	function argCombatRetreat()
+	function argCombatDefenderRetreat()
 	{
 		$location = $this->globals->get('location');
 //
-		$attacker = $this->globals->get('attacker');
-		$defender = $this->globals->get('defender');
+		$faction = $this->globals->get('defender');
+		return ['faction' => $faction, 'location' => $location, 'navalDifficulties' => $this->globals->get('navalDifficulties'), 'units' => array_map('Units::get', $this->globals->get("combatUnits/$faction"))];
+	}
+	function argCombatAttackerRetreat()
+	{
+		$location = $this->globals->get('location');
 //
-		return ['location' => $location, 'navalDifficulties' => $this->globals->get('navalDifficulties'), '_private' => $this->possible = [
-			Factions::getPlayer($attacker) => ['faction' => $attacker, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$attacker"))],
-			Factions::getPlayer($defender) => ['faction' => $defender, 'units' => array_map('Units::get', $this->globals->get("combatUnits/$defender"))],
-		]];
+		$faction = $this->globals->get('attacker');
+		return ['faction' => $faction, 'location' => $location, 'navalDifficulties' => $this->globals->get('navalDifficulties'), 'units' => array_map('Units::get', $this->globals->get("combatUnits/$faction"))];
 	}
 	function argDivineGraceNatureSpirits()
 	{
-		return $this->globals->get('dice');
+		return ['faction' => $this->globals->get('faction'), 'dice' => $this->globals->get('dice')];
 	}
 }

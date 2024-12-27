@@ -15,15 +15,20 @@ trait gameStateActions
 	{
 		$this->gamestate->nextState('startOfRound');
 	}
-	function actSecretChoice(#[IntParam] int $card)
+	function actSecretChoice(#[JsonParam] array $choices)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
+		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
 //
-		if (!in_array($card, Factions::getStatus($faction, 'events'))) throw new BgaVisibleSystemException("Invalid card: $card");
-		$this->globals->set("event/$faction", $card);
+		foreach ($choices as $faction => $card)
+		{
+			if (!in_array($faction, $this->possible[$player_id])) throw new BgaVisibleSystemException("Invalid faction: $faction");
+			if (!in_array($card, Factions::getStatus($faction, 'events'))) throw new BgaVisibleSystemException("Invalid card: $card");
+			$this->globals->set("event/$faction", $card);
 //* -------------------------------------------------------------------------------------------------------- */
-		self::notifyPlayer($player_id, 'event', '', ['event' => $card]);
+			self::notifyPlayer($player_id, 'event', '', ['event' => $card]);
 //* -------------------------------------------------------------------------------------------------------- */
+		}
 		if ($this->gamestate->setPlayerNonMultiactive($player_id, 'eventResolutionPhase'))
 		{
 //* -------------------------------------------------------------------------------------------------------- */
@@ -33,7 +38,7 @@ trait gameStateActions
 	}
 	function actEventResolution(#[JsonParam] array $units)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
 //
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		foreach (array_keys($units) as $unit) if (!array_key_exists($unit, $this->possible['units'])) throw new BgaVisibleSystemException("Invalid units: $unit");
@@ -80,14 +85,14 @@ trait gameStateActions
 //* -------------------------------------------------------------------------------------------------------- */
 		self::eventResolve($this->globals->get("event/$faction"));
 //
-		$this->globals->set("recoveryValue/$faction", $this->CARDS[$this->possible['card']][0]);
+		$this->globals->set("recoveryValue/$faction", $this->CARDS[$this->possible['card']]['recoveryValue']);
 		$this->globals->delete("event/$faction");
 //
 		$this->gamestate->nextState('eventCombatPhase');
 	}
 	function actReinforcement(#[JsonParam] array|null $reinforcement, #[JsonParam] array|null $units)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
 //
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!array_key_exists('bags', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
@@ -156,8 +161,7 @@ trait gameStateActions
 	}
 	function actPass()
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 //
 		$this->globals->delete('activeArea');
@@ -166,8 +170,7 @@ trait gameStateActions
 	}
 	function actActivation(#[IntParam(min: 1, max: 15)] int $location)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!in_array($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
 //
@@ -182,8 +185,7 @@ trait gameStateActions
 	}
 	function actIncursion(#[IntParam] int $from, #[IntParam] int $to, #[JsonParam] array $shipsWear = [])
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!in_array($from, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $from");
 //
@@ -213,11 +215,9 @@ trait gameStateActions
 	}
 	function actIncursionInjuries(#[IntParam] int $id)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
-		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!array_key_exists($id, $this->possible['units'])) throw new BgaVisibleSystemException("Invalid unit: $id");
 		if (!($unit = Units::get($id))) throw new BgaVisibleSystemException("Invalid unit: $id");
+		if ($unit['faction'] !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $unit[faction]");
 //
 		self::reduceUnit($unit, $this->possible['hits']);
 //
@@ -226,8 +226,7 @@ trait gameStateActions
 	}
 	function actIncursionContinue(#[BoolParam] $continue)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
 //
 		$attempts++;
@@ -239,8 +238,7 @@ trait gameStateActions
 	}
 	function actBuildPalisades(#[JsonParam] array $locations)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== Factions::SPANISH) throw new BgaVisibleSystemException("Only Spanish faction can build palisades");
 		if (sizeof($locations) > 3) throw new BgaVisibleSystemException("You can only build up to 3 palisades");
 		if (!array_key_exists('palisades', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
@@ -270,8 +268,7 @@ trait gameStateActions
 	}
 	function actBuildCitadels(#[JsonParam] array $locations)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== Factions::SPANISH) throw new BgaVisibleSystemException("Only Spanish faction can build citadels");
 		if (sizeof($locations) > 2) throw new BgaVisibleSystemException("You can only build up to 2 citadels");
 		if (!array_key_exists('citadels', $this->possible)) throw new BgaVisibleSystemException("Invalid possible: " . json_encode($this->possible));
@@ -321,8 +318,7 @@ trait gameStateActions
 	}
 	function actScribe(#[IntParam] int $scribe, #[IntParam] int $attestor)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!($unit = Units::get($scribe))) throw new BgaVisibleSystemException("Invalid unit: $scribe");
 		if ($unit['type'] !== 'Scribes') throw new BgaVisibleSystemException("Invalid unit type: $unit[type]");
@@ -347,8 +343,7 @@ trait gameStateActions
 	}
 	function actMovementPhase(#[JsonParam] array $units, #[JsonParam] array $shipsWear = [])
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 //
 		$from = $this->globals->get('activeArea');
@@ -390,8 +385,7 @@ trait gameStateActions
 	}
 	function actCombat(#[IntParam(min: 1, max: 15)] int $location)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$faction = $this->globals->get('faction');
 		if ($faction !== $this->possible['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
 		if (!in_array($location, $this->possible['locations'])) throw new BgaVisibleSystemException("Invalid location: $location");
 //
@@ -401,55 +395,64 @@ trait gameStateActions
 //
 		$this->gamestate->nextState('combat');
 	}
-	function actCombatSelectUnits(#[JsonParam] array $units)
+	function actCombatSelectUnits(#[JsonParam] array $selectedUnits)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$player_id = self::getCurrentPlayerId();
 		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
-		if ($faction !== $this->possible[$player_id]['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
-		if (sizeof($units) !== 3) throw new BgaVisibleSystemException("Invalid number of units: " . sizeof($units));
-		if (array_diff($units, $this->globals->get("combatUnits/$faction"))) throw new BgaVisibleSystemException("Invalid units: " . json_encode($units));
 //
-		$this->globals->set("combatUnits/$faction", $units);
-//
-		$this->gamestate->setPlayerNonMultiactive($player_id, 'combatRolls');
-	}
-	function actCombatHits(#[JsonParam] array $units)
-	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
-		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
-		if ($faction !== $this->possible[$player_id]['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
-//
-		$hits = $this->globals->get('hits');
-		$hits[$faction] = 'done';
-		$this->globals->set('hits', $hits);
-//
-		foreach ($units as $id => $hits)
+		foreach ($selectedUnits as $faction => $units)
 		{
-			if ($hits > 0)
+			if (!array_key_exists($faction, $this->possible[$player_id])) throw new BgaVisibleSystemException("Invalid faction: $faction");
+//
+			if ($this->possible[$player_id][$faction]['units'])
 			{
-				$unit = Units::get($id);
+				if (sizeof($units) !== 3) throw new BgaVisibleSystemException("Invalid number of units: " . sizeof($units));
+				if (array_diff($units, $this->globals->get("combatUnits/$faction"))) throw new BgaVisibleSystemException("Invalid units: " . json_encode($units));
 //
-				if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
-				if (!in_array($id, $this->globals->get("combatUnits/$unit[faction]"))) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
-//
-				if (!self::reduceUnit($unit, $hits)) $this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), [$id])));
+				$this->globals->set("combatUnits/$faction", $units);
 			}
+			else if (sizeof($units) !== 0) throw new BgaVisibleSystemException("Invalid number of units: " . sizeof($units));
 		}
 //
 		$this->gamestate->setPlayerNonMultiactive($player_id, 'combatRolls');
 	}
-	function actRetreat(#[JsonParam] array $units, #[JsonParam] array $shipsWear)
+	function actCombatHits(#[JsonParam] array $combatHits)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
-//
+		$player_id = self::getCurrentPlayerId();
 		if (!array_key_exists($player_id, $this->possible)) throw new BgaVisibleSystemException("Invalid player: $player_id");
-		if ($faction !== $this->possible[$player_id]['faction']) throw new BgaVisibleSystemException("Invalid faction: $faction");
+
+		$hits = $this->globals->get('hits');
+		foreach ($combatHits as $faction => $units)
+		{
+			if (!array_key_exists($faction, $this->possible[$player_id])) throw new BgaVisibleSystemException("Invalid faction: $faction");
+//
+			foreach ($units as $id => $hit)
+			{
+				if ($hit > 0)
+				{
+					$unit = Units::get($id);
+//
+					if ($unit['faction'] !== $faction) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+					if (!in_array($id, $this->globals->get("combatUnits/$unit[faction]"))) throw new BgaVisibleSystemException("Invalid unit: " . json_encode($unit));
+//
+					if (!self::reduceUnit($unit, $hit)) $this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), [$id])));
+				}
+			}
+			$hits[$faction] = 'done';
+		}
+		$this->globals->set('hits', $hits);
+//
+		$this->gamestate->setPlayerNonMultiactive($player_id, 'combatRolls');
+	}
+	function actRetreat(#[StringParam] string $faction, #[JsonParam] array $units, #[JsonParam] array $shipsWear)
+	{
+		$player_id = intval(self::getCurrentPlayerId());
+		if (Factions::getPlayer($faction) !== $player_id) throw new BgaVisibleSystemException("Invalid player: $player_id");
 //
 		$from = $this->globals->get('location');
 //
-		if ($navalDifficulties = $this->globals->get('navalDifficulties'))
+		$navalDifficulties = $this->globals->get('navalDifficulties');
+		if ($navalDifficulties)
 		{
 			if (array_key_exists($from, $shipsWear) && is_int($shipsWear[$from]))
 			{
@@ -484,17 +487,11 @@ trait gameStateActions
 //
 		$this->globals->set("combatUnits/$faction", array_values(array_diff($this->globals->get("combatUnits/$faction"), array_keys($units))));
 //
-		if ($player_id === Factions::getPlayer($this->globals->get('defender')))
-		{
-			$player_id = Factions::getPlayer($this->globals->get('attacker'));
-			self::giveExtraTime($player_id);
-			$this->gamestate->setPlayersMultiactive([$player_id], 'newRoundOfCombat', true);
-		}
-		else $this->gamestate->setPlayerNonMultiactive($player_id, 'newRoundOfCombat');
+		$this->gamestate->setPlayerNonMultiactive($player_id, 'continue');
 	}
 	function actDivineGraceNatureSpirits(#[StringParam] string $type, #[JsonParam] array|null $dice)
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getCurrentPlayerId()));
+		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
 //
 		if ($type !== 'pass')
 		{

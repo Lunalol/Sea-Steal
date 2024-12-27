@@ -132,7 +132,9 @@ trait gameStates
 		self::setGameStateInitialValue('turn', 0);
 		self::setGameStateInitialValue('fate', 0);
 //
-		$this->gamestate->changeActivePlayer(Factions::getPlayer(Factions::SPANISH));
+		$this->globals->set('counter', 0);
+		$this->globals->set('faction', Factions::SPANISH);
+		$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer(Factions::SPANISH));
 //
 		$this->gamestate->nextState('startOfGame');
 	}
@@ -155,9 +157,9 @@ trait gameStates
 		$turn = intval(self::getGameStateValue('turn'));
 		if ($turn === 1)
 		{
-			$bool = $this->CARDS[self::getGameStateValue('fate')][0];
-			if ($bool & DIVINEGRACE) $this->globals->set('counter', $counter = Counters::create('divineGrace', 0));
-			if ($bool & NATURESPIRITS) $this->globals->set('counter', $counter = Counters::create('natureSpirits', 0));
+			$flags = $this->CARDS[self::getGameStateValue('fate')]['flags'];
+			if ($flags & DIVINEGRACE) $this->globals->set('counter', $counter = Counters::create('divineGrace', 0));
+			if ($flags & NATURESPIRITS) $this->globals->set('counter', $counter = Counters::create('natureSpirits', 0));
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeCounter', '', ['counter' => Counters::get($counter)]);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -188,8 +190,9 @@ trait gameStates
 		$this->globals->set('fateCards', $fateCards);
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('fate', clienttranslate('A new fate card is revealed'), ['fate' => $fate]);
+		self::notifyAllPlayers('msg', '${FATE}', ['FATE' => $fate]);
 //* -------------------------------------------------------------------------------------------------------- */
-		$this->globals->set('navalDifficulties', $navalDifficulties = boolval($this->CARDS[$fate][0] & NAVALDIFFICULTIES));
+		$this->globals->set('navalDifficulties', $navalDifficulties = boolval($this->CARDS[$fate]['flags'] & NAVALDIFFICULTIES));
 //
 		$counter = Counters::get($this->globals->get('shipsWear'));
 		$counter['location'] = $navalDifficulties ? 'shipsWear' : 'aside';
@@ -225,7 +228,7 @@ trait gameStates
 //
 			default:
 				{
-					$impulse = $this->CARDS[$fate][1];
+					$impulse = $this->CARDS[$fate]['impulse'];
 //
 					Factions::setImpulse(Factions::SPANISH, $impulse);
 					$impulseSpanish = Counters::get($this->globals->get('impulseSpanish'));
@@ -276,8 +279,9 @@ trait gameStates
 			$card = $this->globals->get("event/$faction");
 			if ($card)
 			{
+				$this->globals->set('faction', $faction);
 				$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer($faction));
-				self::giveExtraTime($this->getActivePlayerId());
+				self::giveExtraTime($player_id);
 //* -------------------------------------------------------------------------------------------------------- */
 //				self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => $this->CARDS[$card]['title']]);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -357,8 +361,9 @@ trait gameStates
 			$reinforcement = $this->globals->get("reinforcement/$faction");
 			if ($reinforcement)
 			{
-				$this->gamestate->changeActivePlayer(Factions::getPlayer($faction));
-				self::giveExtraTime($this->getActivePlayerId());
+				$this->globals->set('faction', $faction);
+				$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer($faction));
+				self::giveExtraTime($player_id);
 //
 				return $this->gamestate->nextState('reinforcement');
 			}
@@ -384,7 +389,7 @@ trait gameStates
 	{
 		if (intval(self::getGameStateValue('turn')) !== 1)
 		{
-			self::activeNextPlayer();
+			$this->globals->set('faction', Factions::other($this->globals->get('faction')));
 			$this->gamestate->nextState('action');
 		}
 		else
@@ -404,18 +409,18 @@ trait gameStates
 	}
 	function stAction()
 	{
-		$faction = Factions::getFaction($player_id = intval(self::getActivePlayerId()));
+		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('msg', '<span class="SSimpulse">${faction} <span>${LOG}</span></span>', ['i18n' => ['LOG'], 'LOG' => ['log' => clienttranslate('${player_name}\'s turn'), 'args' => ['player_name' => self::getCurrentPlayerName()]], 'faction' => $faction]);
 //* -------------------------------------------------------------------------------------------------------- */
-		self::giveExtraTime($this->getActivePlayerId());
+		self::giveExtraTime($player_id);
 	}
 	function stEndOfImpulse()
 	{
+		$faction = $this->globals->get('faction');
+//
 		if (intval(self::getGameStateValue('turn')) !== 1)
 		{
-			$faction = Factions::getFaction($player_id = intval($this->getActivePlayerId()));
-//
 			Factions::setImpulse($faction, $impulse = max(0, Factions::getImpulse($faction) - 1));
 //
 			$impulseCounter = Counters::getByType("impulse$faction")[0];
@@ -424,8 +429,19 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('placeCounter', '', ['counter' => $impulseCounter]);
 //* -------------------------------------------------------------------------------------------------------- */
-			if (Factions::getImpulse(Factions::INDIGENOUS) === 0 && Factions::getImpulse(Factions::SPANISH) === 0) return $this->gamestate->nextState('victoryCheckPhase');
+			$max = max(Factions::getImpulse(Factions::INDIGENOUS), Factions::getImpulse(Factions::SPANISH));
+//
+			$counter = Counters::get($this->globals->get('counter'));
+			if ($counter['location'] > $max)
+			{
+				Counters::setLocation($counter['id'], $counter['location'] = $max);
+//* -------------------------------------------------------------------------------------------------------- */
+				self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
+//* -------------------------------------------------------------------------------------------------------- */
+			}
+			if ($max === 0) return $this->gamestate->nextState('victoryCheckPhase');
 		}
+//
 		$this->gamestate->nextState('startOfImpulse');
 	}
 	function stVictoryCheckPhase()
@@ -480,9 +496,8 @@ trait gameStates
 		$this->globals->set('incursion', ['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts]);
 //
 		$counter = Counters::get($this->globals->get('counter'));
-//
-		if ($faction === Factions::INDIGENOUS && $counter && $counter['type'] === 'natureSpirits' && $counter['location'] == Factions::getImpulse(Factions::INDIGENOUS)) return $this->gamestate->nextState('incursionDice');
-		if ($faction === Factions::SPANISH && $counter && $counter['type'] === 'divineGrace' && $counter['location'] == Factions::getImpulse(Factions::SPANISH)) return $this->gamestate->nextState('incursionDice');
+		if ($faction === Factions::INDIGENOUS && $counter && $counter['type'] === 'natureSpirits' && $counter['location'] == Factions::getImpulse(Factions::INDIGENOUS)) return $this->gamestate->nextState('divineGraceNatureSpirits');
+		if ($faction === Factions::SPANISH && $counter && $counter['type'] === 'divineGrace' && $counter['location'] == Factions::getImpulse(Factions::SPANISH)) return $this->gamestate->nextState('divineGraceNatureSpirits');
 //
 		$this->gamestate->nextState('incursionResolve');
 	}
@@ -605,8 +620,6 @@ trait gameStates
 	}
 	function stCombatRolls()
 	{
-		$location = $this->globals->get('location');
-//
 		$attacker = $this->globals->get('attacker');
 		$defender = $this->globals->get('defender');
 //
@@ -617,7 +630,32 @@ trait gameStates
 		else if (is_null($hits[$defender])) $hits[$defender] = 0;
 		else if (is_null($hits[$attacker])) $hits[$attacker] = 0;
 //
+		$this->globals->set('hits', $hits);
+//
 		$dices = [];
+		foreach (['attacker' => $attacker, 'defender' => $defender] as $faction)
+		{
+			if (!is_numeric($hits[Factions::other($faction)])) continue;
+			foreach ($this->globals->get("combatUnits/$faction") as $id) $dices[$id] = $roll = bga_rand(1, 6);
+		}
+		$this->globals->set('dice', $dices);
+//
+		$counter = Counters::get($this->globals->get('counter'));
+		if ($attacker === Factions::INDIGENOUS && $counter && $counter['type'] === 'natureSpirits' && $counter['location'] == Factions::getImpulse(Factions::INDIGENOUS)) return $this->gamestate->nextState('divineGraceNatureSpirits');
+		if ($attacker === Factions::SPANISH && $counter && $counter['type'] === 'divineGrace' && $counter['location'] == Factions::getImpulse(Factions::SPANISH)) return $this->gamestate->nextState('divineGraceNatureSpirits');
+//
+		$this->gamestate->nextState('combatResolve');
+	}
+	function stCombatResolve()
+	{
+		$location = $this->globals->get('location');
+//
+		$attacker = $this->globals->get('attacker');
+		$defender = $this->globals->get('defender');
+//
+		$hits = $this->globals->get('hits');
+		$dices = $this->globals->get('dice');
+//
 		foreach (['attacker' => $attacker, 'defender' => $defender] as $side => $faction)
 		{
 			if (!is_numeric($hits[Factions::other($faction)])) continue;
@@ -625,7 +663,7 @@ trait gameStates
 			foreach ($this->globals->get("combatUnits/$faction") as $id)
 			{
 				$unit = Units::get($id);
-				$dices[$id] = $roll = bga_rand(1, 6);
+				$roll = $dices[$id];
 //
 				$modifier = 0;
 //
@@ -677,12 +715,9 @@ trait gameStates
 				}
 			}
 		}
-//
 		$this->globals->set('hits', $hits);
-		$this->globals->set('dice', $dices);
 //
 		$this->gamestate->nextState('combatHits');
-//
 	}
 	function stCombatHits()
 	{
@@ -705,7 +740,7 @@ trait gameStates
 //
 		$this->gamestate->setPlayersMultiactive($players, 'combatRolls', true);
 	}
-	function stCombatRetreat()
+	function stCombatDefenderRetreat()
 	{
 		$location = $this->globals->get('location');
 //
@@ -719,9 +754,27 @@ trait gameStates
 		{
 			$player_id = Factions::getPlayer($defender);
 			self::giveExtraTime($player_id);
-			$this->gamestate->setPlayersMultiactive([$player_id], 'newRoundOfCombat', true);
+			$this->gamestate->setPlayersMultiactive([$player_id], 'continue', true);
 		}
-		else $this->gamestate->nextState('newRoundOfCombat');
+		else $this->gamestate->nextState('continue');
+	}
+	function stCombatAttackerRetreat()
+	{
+		$location = $this->globals->get('location');
+//
+		$attacker = $this->globals->get('attacker');
+		$defender = $this->globals->get('defender');
+//
+		$this->globals->delete('hits');
+		$this->globals->set('simultaneous', true);
+//
+		if (Units::getAtLocation($location, $defender) && Units::getAtLocation($location, $attacker))
+		{
+			$player_id = Factions::getPlayer($attacker);
+			self::giveExtraTime($player_id);
+			$this->gamestate->setPlayersMultiactive([$player_id], 'continue', true);
+		}
+		else $this->gamestate->nextState('continue');
 	}
 	function stEndOfCombat()
 	{
@@ -764,7 +817,6 @@ trait gameStates
 		}
 		if ($attacker === Factions::SPANISH && sizeof(Units::getAtLocation($location, $defender)) === 0)
 		{
-			$counter = Counters::get($this->globals->get('royalSupport'));
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('msg', clienttranslate('Spanish player is searching for gold'), []);
 //* -------------------------------------------------------------------------------------------------------- */
@@ -772,33 +824,46 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 			self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getActivePlayerName(), 'DICE' => $roll]);
 //* -------------------------------------------------------------------------------------------------------- */
-			switch ($this->CARDS[self::getGameStateValue('fate')]['goldSearch'][$roll - 1])
-			{
-				case +1:
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('msg', clienttranslate('Gold Discovery: +1 Royal Support'), []);
-//* -------------------------------------------------------------------------------------------------------- */
-					$counter['location'] += 1;
-					break;
-				case 0:
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('msg', clienttranslate('No Discovery'), []);
-//* -------------------------------------------------------------------------------------------------------- */
-					break;
-				case -1:
-//* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('msg', clienttranslate('No Discovery: -1 Royal Support'), []);
-//* -------------------------------------------------------------------------------------------------------- */
-					$counter['location'] -= 1;
-					break;
-			}
-			$counter['location'] = max(0, min($counter['location'], 10));
-			Counters::setLocation($counter['id'], $counter['location']);
-//* -------------------------------------------------------------------------------------------------------- */
-			self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
-//* -------------------------------------------------------------------------------------------------------- */
+			$counter = Counters::get($this->globals->get('counter'));
+			if ($attacker === Factions::INDIGENOUS && $counter && $counter['type'] === 'natureSpirits' && $counter['location'] == Factions::getImpulse(Factions::INDIGENOUS)) return $this->gamestate->nextState('divineGraceNatureSpirits');
+			if ($attacker === Factions::SPANISH && $counter && $counter['type'] === 'divineGrace' && $counter['location'] == Factions::getImpulse(Factions::SPANISH)) return $this->gamestate->nextState('divineGraceNatureSpirits');
+//
+			return self::stGoldSearch();
 		}
 //
+		$state = $this->globals->get('state');
+		$this->gamestate->nextState($state);
+	}
+	function stGoldSearch()
+	{
+		$dices = $this->globals->get('dice');
+//
+		$counter = Counters::get($this->globals->get('royalSupport'));
+		switch ($this->CARDS[self::getGameStateValue('fate')]['goldSearch'][$dices[0] - 1])
+		{
+			case +1:
+//* -------------------------------------------------------------------------------------------------------- */
+				self::notifyAllPlayers('msg', clienttranslate('Gold Discovery: +1 Royal Support'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+				$counter['location'] += 1;
+				break;
+			case 0:
+//* -------------------------------------------------------------------------------------------------------- */
+				self::notifyAllPlayers('msg', clienttranslate('No Discovery'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+				break;
+			case -1:
+//* -------------------------------------------------------------------------------------------------------- */
+				self::notifyAllPlayers('msg', clienttranslate('No Discovery: -1 Royal Support'), []);
+//* -------------------------------------------------------------------------------------------------------- */
+				$counter['location'] -= 1;
+				break;
+		}
+		$counter['location'] = max(0, min($counter['location'], 10));
+		Counters::setLocation($counter['id'], $counter['location']);
+//* -------------------------------------------------------------------------------------------------------- */
+		self::notifyAllPlayers('placeCounter', '', ['counter' => $counter]);
+//* -------------------------------------------------------------------------------------------------------- */
 		$state = $this->globals->get('state');
 		$this->gamestate->nextState($state);
 	}

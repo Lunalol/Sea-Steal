@@ -61,6 +61,7 @@ $machinestates = [
 		'description' => clienttranslate('Opponent has to secretly choose one card from their hand'),
 		'descriptionmyturn' => clienttranslate('${you} have to secretly choose one card from your hand'),
 		'type' => 'multipleactiveplayer',
+		'args' => 'argSecretChoice',
 		'possibleactions' => ['actSecretChoice'],
 		'transitions' => ["eventResolutionPhase" => 220]
 	],
@@ -157,7 +158,7 @@ $machinestates = [
 		'description' => clienttranslate('Incursion'),
 		"type" => "game",
 		"action" => "stIncursion",
-		"transitions" => ["incursionDice" => 435, "incursionContinue" => 450, "incursionResolve" => 440, 'continue' => 490]
+		"transitions" => ["divineGraceNatureSpirits" => 435, "incursionContinue" => 450, "incursionResolve" => 440, 'continue' => 490]
 	],
 	435 => [
 		"name" => "divineGraceNatureSpirits",
@@ -231,9 +232,24 @@ $machinestates = [
 		"name" => "combatRolls",
 		"type" => "game",
 		"action" => "stCombatRolls",
-		"transitions" => ["combatHits" => 1020, 'combatRetreat' => 1030]
+		"transitions" => ["divineGraceNatureSpirits" => 1015, "combatResolve" => 1020, 'combatRetreat' => 1040]
+	],
+	1015 => [
+		"name" => "divineGraceNatureSpirits",
+		'description' => clienttranslate('Opponent can use Divine Grace / Nature Spirits'),
+		'descriptionmyturn' => clienttranslate('${you} can use Divine Grace / Nature Spirits'),
+		'type' => 'activeplayer',
+		'args' => 'argDivineGraceNatureSpirits',
+		'possibleactions' => ['actDivineGraceNatureSpirits'],
+		"transitions" => ["continue" => 1020]
 	],
 	1020 => [
+		"name" => "combatResolve",
+		"type" => "game",
+		"action" => "stCombatResolve",
+		"transitions" => ["divineGraceNatureSpirits" => 1015, "combatHits" => 1030, 'combatRetreat' => 1040]
+	],
+	1030 => [
 		'name' => 'combatHits',
 		'description' => clienttranslate('Opponent has to inflict combat hits'),
 		'descriptionmyturn' => clienttranslate('${you} have to inflict combat hits'),
@@ -243,20 +259,45 @@ $machinestates = [
 		'possibleactions' => ['actCombatHits'],
 		'transitions' => ['combatRolls' => 1010]
 	],
-	1030 => [
+	1040 => [
 		'name' => 'combatRetreat',
 		'description' => clienttranslate('Opponent has the opportunity to retreat'),
 		'descriptionmyturn' => clienttranslate('${you} have the opportunity to retreat'),
 		'type' => 'multipleactiveplayer',
-		'args' => 'argCombatRetreat',
-		"action" => "stCombatRetreat",
+		'args' => 'argCombatDefenderRetreat',
+		"action" => "stCombatDefenderRetreat",
 		'possibleactions' => ['actRetreat'],
-		'transitions' => ['continue' => 1030, 'newRoundOfCombat' => 1000]
+		'transitions' => ['continue' => 1045]
+	],
+	1045 => [
+		'name' => 'combatRetreat',
+		'description' => clienttranslate('Opponent has the opportunity to retreat'),
+		'descriptionmyturn' => clienttranslate('${you} have the opportunity to retreat'),
+		'type' => 'multipleactiveplayer',
+		'args' => 'argCombatAttackerRetreat',
+		"action" => "stCombatAttackerRetreat",
+		'possibleactions' => ['actRetreat'],
+		'transitions' => ['continue' => 1000]
 	],
 	1050 => [
 		"name" => "endOfCombat",
 		"type" => "game",
 		"action" => "stEndOfCombat",
-		"transitions" => ["goldSearch" => 1100, "eventCombatPhase" => 240, "reinforcementCombatPhase" => 330, "impulseCombatPhase" => 480]
+		"transitions" => ["divineGraceNatureSpirits" => 1055, "goldSearch" => 1060, "eventCombatPhase" => 240, "reinforcementCombatPhase" => 330, "impulseCombatPhase" => 480]
+	],
+	1055 => [
+		"name" => "divineGraceNatureSpirits",
+		'description' => clienttranslate('Opponent can use Divine Grace / Nature Spirits'),
+		'descriptionmyturn' => clienttranslate('${you} can use Divine Grace / Nature Spirits'),
+		'type' => 'activeplayer',
+		'args' => 'argDivineGraceNatureSpirits',
+		'possibleactions' => ['actDivineGraceNatureSpirits'],
+		"transitions" => ["continue" => 1060]
+	],
+	1060 => [
+		"name" => "goldSearch",
+		"type" => "game",
+		"action" => "stGoldSearch",
+		"transitions" => ["eventCombatPhase" => 240, "reinforcementCombatPhase" => 330, "impulseCombatPhase" => 480]
 	],
 ];

@@ -22,9 +22,10 @@ class Counters extends APP_GameClass
 	{
 		return self::getCollectionFromDB("SELECT * FROM counters ORDER BY type");
 	}
-	static function get(int $id): array
+	static function get(int|null $id): array|null
 	{
-		return self::getObjectListFromDB("SELECT * FROM counters WHERE id = $id")[0];
+		if ($id) return self::getObjectListFromDB("SELECT * FROM counters WHERE id = $id")[0];
+		return null;
 	}
 	static function getAtLocation(string $location, string $type = null): array
 	{

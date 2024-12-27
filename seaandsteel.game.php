@@ -57,15 +57,13 @@ class seaandsteel extends Table
 	}
 	protected function getAllDatas()
 	{
-		$player_id = intval(self::getCurrentPlayerId());
-//
 		$result = [];
 //
 		$result['LOCATIONS'] = $this->LOCATIONS;
 		$result['CARDS'] = $this->CARDS;
 //
 		$result['players'] = $this->getCollectionFromDb("SELECT player_id, player_score score FROM player");
-		$result['factions'] = array_flip(Factions::getAllDatas());
+		$result['factions'] = Factions::getAllDatas();
 //
 		$result['turn'] = intval(self::getGameStateValue('turn'));
 		$result['fate'] = intval(self::getGameStateValue('fate'));
@@ -73,11 +71,13 @@ class seaandsteel extends Table
 		$result['units'] = Units::getAllDatas();
 		$result['counters'] = Counters::getAllDatas();
 //
-		if (!self::isSpectator())
+		foreach ($result['factions'] as $faction => $player_id)
 		{
-			$faction = Factions::getFaction($player_id);
-			$result['hand'] = Factions::getStatus($faction, 'events');
-			$result['event'] = $this->globals->get("event/$faction");
+			if ($player_id === self::getCurrentPlayerId())
+			{
+				$result['hand'][$faction] = Factions::getStatus($faction, 'events');
+				$result['event'][$faction] = $this->globals->get("event/$faction");
+			}
 		}
 //
 		return $result;
@@ -220,6 +220,10 @@ class seaandsteel extends Table
 			self::notifyAllPlayers('placeUnit', '', ['unit' => Units::get(Units::create(Factions::SPANISH, 'Scribes', $unit['location']))]);
 //* -------------------------------------------------------------------------------------------------------- */
 		}
+	}
+	function debug_Combat()
+	{
+		self::dBquery("UPDATE units SET location = 8 WHERE faction = 'Indigenous' LIMIT 5");
 	}
 	function debug_shipsWear()
 	{

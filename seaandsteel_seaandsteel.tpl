@@ -10,7 +10,9 @@
 			<canvas id='SScanvas'></canvas>
 		</div>
 	</div>
-	<div id='SShand' class='SShand'>
+	<div id='SShands' class='SShands'>
+		<div id='SShand-Indigenous' class='SShand'></div>
+		<div id='SShand-Spanish' class='SShand'></div>
 	</div>
 </div>
 <script type="text/javascript">

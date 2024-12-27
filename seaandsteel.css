@@ -204,14 +204,16 @@
 	right: 25.4%;
 	top: 73.7%;
 }
+.SShands {
+	display: flex;
+	flex-direction: row;
+	margin: 10px;
+}
 .SShand {
 	display: flex;
 	flex-direction: column;
-	flex: 0 1 150px;
-	margin: 20px;
+	margin: 10px;
 	align-self: start;
-}
-.mobile_version .SShand {
 }
 .SScard {
 	position: relative;
@@ -227,6 +229,7 @@
 }
 .SShand>.SScard {
 	margin-bottom: -60%;
+	width: 150px;
 }
 .SShand>.SScard:nth-child(odd) {
 	transform: rotate(+5deg);
@@ -252,29 +255,30 @@
 	display: inline-flex;
 	flex-wrap: wrap;
 	vertical-align: middle;
+	align-items: center;
 	margin: 0px 10px;
 }
-.SSunitContainer>.SSunit {
+.SSunitContainer .SSunit {
 	height: 50px;
 	width: 50px;
 	margin: 1px;
 	transition: transform .25s, filter .25s;
 	filter: grayscale(1);
 }
-.SSunitContainer>.SSunit.SSremoved:before {
+.SSunitContainer .SSunit.SSremoved:before {
 	content: '❌';
 	font-size: 40px;
 	line-height: 50px;
 }
-.SSunitContainer>.SSunit.SSselected {
+.SSunitContainer .SSunit.SSselected {
 	filter: none;
 	transition: transform .5s, filter .5s;
 }
-.SSunitContainer>.SSunit:not(.SSselected):hover {
+.SSunitContainer .SSunit:not(.SSselected):hover {
 	filter: drop-shadow(2px 4px 6px black) grayscale(1);
 	transition: transform .5s, filter .5s;
 }
-.SSunitContainer>.SSunit.SSselected:hover {
+.SSunitContainer .SSunit.SSselected:hover {
 	filter: drop-shadow(2px 4px 6px black);
 	transition: transform .5s, filter .5s;
 }
@@ -365,7 +369,15 @@
     height:30px;
     background-image:url('img/dices.png');
 }
-
+.SSdiceUnit {
+	display:flex;
+	align-items:center;
+	margin-right:15px;
+	border:2px solid transparent
+}
+.SSdiceUnit.SSselected {
+	border-color: black;
+}
 .SSbag {
 	filter: drop-shadow(0px 0px 6px black);
 }

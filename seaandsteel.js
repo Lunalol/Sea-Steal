@@ -26,20 +26,39 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 // Card tooltips
 //
-			new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard", showDelay: 1000, hideDelay: 0, getContent: (node) =>
+			new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard.SSevent", showDelay: 1000, hideDelay: 0, getContent: (node) =>
 				{
 					let html = '';
-					if (node.dataset.id in gamedatas.CARDS && node.dataset.id <= 18)
+					if (node.dataset.id in gamedatas.CARDS)
 					{
 						html += `<div style='display:flex;flex-direction:row;'>`;
 						html += `<div class='SScard' style='width:350px;background-position-x:${node.style['background-position-x']}'></div>`;
 						html += `<div style='width:300px;line-height:150%;'>`;
 						html += `<H2>${gamedatas.CARDS[node.dataset.id].title}</H2>`;
 						html += `<HR>`;
-						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][1])}</div>`;
-						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][2]).replaceAll('. ', '.<BR>')}</div>`;
+						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][0])}</div>`;
+						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][1]).replaceAll('. ', '.<BR>')}</div>`;
 						html += `<HR>`;
-						html += `<div><I>${dojo.string.substitute(_('Reinforcement value: ${value}'), {value: gamedatas.CARDS[node.dataset.id][0]})}</I></div>`;
+						html += `<div><I>${dojo.string.substitute(_('Reinforcement value: ${value}'), {value: gamedatas.CARDS[node.dataset.id].recoveryValue})}</I></div>`;
+						html += `</div>`;
+						html += `</div>`;
+					}
+					return html;
+				}});
+			new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard.SSfate", showDelay: 1000, hideDelay: 0, getContent: (node) =>
+				{
+					let html = '';
+					if (node.dataset.id in gamedatas.CARDS)
+					{
+						html += `<div style='display:flex;flex-direction:row;'>`;
+						html += `<div class='SScard' style='width:350px;background-position-x:${node.style['background-position-x']}'></div>`;
+						html += `<div style='width:300px;line-height:150%;'>`;
+						html += `<H2>${gamedatas.CARDS[node.dataset.id].title}</H2>`;
+						html += `<HR>`;
+						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][0])}</div>`;
+						html += `<HR>`;
+						html += `<div style='margin: 10px 0px;'>${_(gamedatas.CARDS[node.dataset.id][1]).replaceAll('. ', '.<BR>')}</div>`;
+						html += `<HR>`;
 						html += `</div>`;
 						html += `</div>`;
 					}
@@ -50,20 +69,20 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 // Fate card
 //
-			dojo.place(`<div class='SSfate'><div class='SScard'></div></div>`, 'player_boards');
-			dojo.place(`<div class='SSfate'><div class='SScard'></div></div>`, 'SSboard');
+			dojo.place(`<div class='SSfate'><div class='SScard SSfate'></div></div>`, 'player_boards');
+			dojo.place(`<div class='SSfate'><div class='SScard SSfate'></div></div>`, 'SSboard');
 //
 			if ('fate' in gamedatas) this.fate(gamedatas.fate);
 //
 // Event cards
 //
-			if ('hand' in gamedatas) this.hand(gamedatas.hand);
+			if ('hand' in gamedatas) for (let faction in gamedatas.hand) this.hand(faction, gamedatas.hand[faction]);
 //
 			this.connectClass('SScard', 'click', (event) => {
 				dojo.stopEvent(event);
 				if (this.isCurrentPlayerActive() && dojo.hasClass(event.currentTarget, 'SSselectable'))
 				{
-					dojo.query('.SShand>.SScard', 'SSplayArea').removeClass('SSselected');
+					dojo.query('.SScard', event.currentTarget.parentNode).removeClass('SSselected');
 					dojo.addClass(event.currentTarget, 'SSselected');
 				}
 			});
@@ -83,7 +102,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 // Selected event cards
 //
-			if ('event' in this.gamedatas) dojo.query(`.SScard[data-id='${this.gamedatas.event}']`, 'SShand').addClass('SSselected');
+			if ('event' in this.gamedatas) for (let faction in this.gamedatas.event) dojo.query(`.SScard[data-id='${this.gamedatas.event[faction]}']`, 'SShands').addClass('SSselected');
 //
 			if (!state.args) return;
 //
@@ -232,7 +251,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 				case 'combatRetreat':
 //
 					{
-						const node = dojo.place(`<div id='SSaction-${state.args.location}' class='SSaction' style='background:${COLORS[state.args._private.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
+						const node = dojo.place(`<div id='SSaction-${state.args.location}' class='SSaction' style='background:${COLORS[state.args.faction]};filter:blur(25px);z-index:-1;'></div>`, 'SSboard');
 						dojo.style(node, {left: `${BOARD[state.args.location][0] - 5}%`, top: `${BOARD[state.args.location][1] - 5}%`});
 					}
 					break;
@@ -285,8 +304,14 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 							this.addActionButton('SSsecretChoice', _('Play event card'), (event) => {
 								dojo.stopEvent(event);
-								const nodes = dojo.query('.SShand>.SScard.SSselected', 'SSplayArea');
-								if (nodes.length === 1) this.bgaPerformAction('actSecretChoice', {card: nodes[0].dataset.id});
+								const choices = {}
+								for (let faction of args._private)
+								{
+									const nodes = dojo.query('.SScard.SSselected', `SShand-${faction}`);
+									if (nodes.length !== 1) return;
+									choices[faction] = nodes[0].dataset.id;
+								}
+								this.bgaPerformAction('actSecretChoice', {choices: JSON.stringify(choices)});
 							});
 						}
 						break;
@@ -677,21 +702,32 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 						{
 							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
-							for (let unit of Object.values(args._private.units))
+							for (let faction in args._private)
 							{
-								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
-								dojo.connect(node, 'click', (event) => {
-									dojo.stopEvent(event);
+								for (let unit of args._private[faction].units)
+								{
+									const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
+									dojo.connect(node, 'click', (event) => {
+										dojo.stopEvent(event);
 //									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
-									dojo.toggleClass(node, 'SSselected');
-									dojo.toggleClass('SScombatSelectUnits', 'disabled', dojo.query('.SSunit.SSselected', container).length !== 3);
-								});
+										dojo.toggleClass(node, 'SSselected');
+										let OK = true;
+										for (let faction in args._private)
+										{
+											if (args._private[faction].units.length)
+												if (dojo.query(`.SSunit[data-faction='${faction}'].SSselected`, container).length !== 3) OK = false;
+										}
+										dojo.toggleClass('SScombatSelectUnits', 'disabled', !OK);
+									});
+								}
 							}
 //
 							this.addActionButton('SScombatSelectUnits', _('Select only 3 units'), (event) => {
 								dojo.stopEvent(event);
-								const units = dojo.query('.SSunit.SSselected', container).reduce((L, node) => [...L, +node.dataset.id], []);
-								if (units.length === 3) this.bgaPerformAction('actCombatSelectUnits', {units: JSON.stringify(units)});
+								const units = {};
+								for (let faction in args._private)
+									units[faction] = dojo.query(`.SSunit[data-faction='${faction}'].SSselected`, container).reduce((L, node) => [...L, +node.dataset.id], []);
+								this.bgaPerformAction('actCombatSelectUnits', {selectedUnits: JSON.stringify(units)});
 							});
 							dojo.addClass('SScombatSelectUnits', 'disabled');
 						}
@@ -701,56 +737,70 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 						{
 							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
-							for (let unit of Object.values(args._private.units))
-							{
-								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}' data-hits='0'></div>`, container);
-								dojo.connect(node, 'click', (event) => {
-									dojo.stopEvent(event);
-//									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
-									if (args._private.hits > 0)
-									{
-										if (!dojo.hasClass(node, 'SSreduced'))
-										{
-											if (+$('SShits').innerHTML < args._private.hits)
-											{
-												dojo.addClass(node, 'SSselected SSreduced');
-												node.dataset.hits++;
-												$('SShits').innerHTML++;
-											}
-										}
-										else if (!dojo.hasClass(node, 'SSremoved') && +$('SShits').innerHTML < args._private.hits)
-										{
-											dojo.addClass(node, 'SSselected SSreduced SSremoved');
-											node.dataset.hits++;
-											$('SShits').innerHTML++;
-										}
-										else
-										{
-											if (dojo.hasClass(node, 'SSremoved'))
-											{
-												node.dataset.hits--;
-												$('SShits').innerHTML--;
-												dojo.removeClass(node, 'SSselected SSremoved');
-											}
-											if (dojo.hasClass(node, 'SSreduced') && +unit.reduced === 0)
-											{
-												node.dataset.hits--;
-												$('SShits').innerHTML--;
-												dojo.removeClass(node, 'SSselected SSreduced');
-											}
-										}
-									}
-									console.log($('SShits').innerHTML, args._private.hits);
-									dojo.toggleClass('SScombatHits', 'disabled', +$('SShits').innerHTML !== args._private.hits);
-									if (dojo.query('.SSunit:not(.SSremoved)', container).length === 0) dojo.removeClass('SScombatHits', 'disabled');
-								});
-							}
 //
-							this.addActionButton('SScombatHits', `<span id='SShits'>0</span>/${args._private.hits} ` + _('hit(s)'), (event) => {
+							let hits = '<span>';
+							for (let faction in args._private)
+							{
+								for (let unit of args._private[faction].units)
+								{
+									const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}' data-hits='0'></div>`, container);
+									dojo.connect(node, 'click', (event) => {
+										dojo.stopEvent(event);
+//									$(`SSunit-${unit.id}`).scrollIntoView({block: 'center', inline: 'center'});
+										if (args._private[faction].hits > 0)
+										{
+											if (!dojo.hasClass(node, 'SSreduced'))
+											{
+												if (+$(`SShits-${faction}`).innerHTML < args._private[faction].hits)
+												{
+													dojo.addClass(node, 'SSselected SSreduced');
+													node.dataset.hits++;
+													$(`SShits-${faction}`).innerHTML++;
+												}
+											}
+											else if (!dojo.hasClass(node, 'SSremoved') && +$(`SShits-${faction}`).innerHTML < args._private[faction].hits)
+											{
+												dojo.addClass(node, 'SSselected SSreduced SSremoved');
+												node.dataset.hits++;
+												$(`SShits-${faction}`).innerHTML++;
+											}
+											else
+											{
+												if (dojo.hasClass(node, 'SSremoved'))
+												{
+													node.dataset.hits--;
+													$(`SShits-${faction}`).innerHTML--;
+													dojo.removeClass(node, 'SSselected SSremoved');
+												}
+												if (dojo.hasClass(node, 'SSreduced') && +unit.reduced === 0)
+												{
+													node.dataset.hits--;
+													$(`SShits-${faction}`).innerHTML--;
+													dojo.removeClass(node, 'SSselected SSreduced');
+												}
+											}
+										}
+										let OK = true;
+										for (let faction in args._private)
+										{
+											if (dojo.query(`.SSunit[data-faction='${faction}']:not(.SSremoved)`, container).length === 0) continue;
+											if (+$(`SShits-${faction}`).innerHTML !== args._private[faction].hits) OK = false;
+										}
+
+										dojo.toggleClass('SScombatHits', 'disabled', !OK);
+										if (dojo.query('.SSunit:not(.SSremoved)', container).length === 0) dojo.removeClass('SScombatHits', 'disabled');
+									});
+								}
+								hits += `<span style='background:${COLORS[faction]};'>&nbsp<span id='SShits-${faction}'>0</span>/${args._private[faction].hits}&nbsp</span>`;
+							}
+							hits += `&nbsp${_('hit(s)')}</span>`;
+//
+							this.addActionButton('SScombatHits', hits, (event) => {
 								dojo.stopEvent(event);
 								const units = {};
-								dojo.query('.SSunit.SSselected', container).forEach((node) => units[node.dataset.id] = +node.dataset.hits);
-								this.bgaPerformAction('actCombatHits', {units: JSON.stringify(units)});
+								for (let faction in args._private) units[faction] = {};
+								dojo.query('.SSunit.SSselected', container).forEach((node) => units[node.dataset.faction][node.dataset.id] = +node.dataset.hits);
+								this.bgaPerformAction('actCombatHits', {combatHits: JSON.stringify(units)});
 							});
 							dojo.addClass('SScombatHits', 'disabled');
 						}
@@ -759,10 +809,10 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					case 'combatRetreat':
 //
 						{
-							this.movement = new Movement(this, RETREAT, args._private.faction, args.location, args.navalDifficulties);
+							this.movement = new Movement(this, RETREAT, args.faction, args.location, args.navalDifficulties);
 //
 							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
-							for (let unit of Object.values(args._private.units))
+							for (let unit of Object.values(args.units))
 							{
 								const node = dojo.place(`<div class='SSunit ${ +unit.reduced === 1 ? 'SSreduced ' : ''}SSselected' data-id='${unit.id}' data-faction='${unit.faction}' data-type='${unit.type}' data-location='${unit.location}'></div>`, container);
 								dojo.connect(node, 'click', (event) => {
@@ -787,7 +837,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							dojo.connect(node, 'click', (event) =>
 							{
 								dojo.stopEvent(event);
-								if (!dojo.hasClass(node, 'SSdisabled')) this.movement.shipsWear(args._private.faction, args.location);
+								if (!dojo.hasClass(node, 'SSdisabled')) this.movement.shipsWear(args.faction, args.location);
 							}
 							);
 							this.addTooltip(node.id,
@@ -801,7 +851,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 								if (dojo.query(`.SSunit[data-faction='${args.faction}'][data-location='${args.location}']:not([data-type='Leader'])`, 'SSboard').length > 3)
 									return this.showMessage(_('Overstacking'), 'info');
 								if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
-								this.bgaPerformAction('actRetreat', {units: JSON.stringify(units), shipsWear: JSON.stringify(this.movement.navalDifficulties)});
+								this.bgaPerformAction('actRetreat', {faction: args.faction, units: JSON.stringify(units), shipsWear: JSON.stringify(this.movement.navalDifficulties)});
 							}, null, false, 'red');
 //
 //							this.addActionButton('SSnoRetreat', _('No retreat'), (event) => {
@@ -814,12 +864,42 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					case 'divineGraceNatureSpirits':
 //
 						{
-							for (let [unit, die] of Object.entries(args))
+							const container = dojo.place(`<div id='SSunitContainer' class='SSunitContainer'></div>`, 'generalactions');
+							for (let [id, die] of Object.entries(args.dice))
 							{
-								this.addActionButton('SSreroll', _('Re-roll die'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: 're-roll', dice: '[0]'}), null, false, 'red');
-								this.addActionButton('SSsubstract', _('Subtract 1 from value'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: '-1', dice: '[0]'}), null, false, 'red');
-								this.addActionButton('SSpass', _('Do nothing'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: 'pass'}));
+								if (id == 0)
+								{
+									const node = dojo.place(`<div class='SSdiceUnit SSselected' data-id='${id}'></div>`, container);
+									dojo.place(`<span class='SSdice' style='background-position-x:-${30 * (die - 1)}px'></span>`, node)
+								}
+								else
+								{
+									const unit = $(`SSunit-${id}`);
+									if (unit && unit.dataset.faction === args.faction)
+									{
+										const node = dojo.place(`<div class='SSdiceUnit' data-id='${id}'></div>`, container);
+										dojo.place(unit.outerHTML, node);
+										dojo.place(`<span class='SSdice' style='background-position-x:-${30 * (die - 1)}px'></span>`, node)
+										dojo.connect(node, 'click', (event) =>
+										{
+											dojo.stopEvent(event);
+											dojo.toggleClass(event.currentTarget.children[0], 'SSselected');
+											dojo.toggleClass(event.currentTarget, 'SSselected');
+										});
+									}
+								}
 							}
+							this.addActionButton('SSreroll', _('Re-roll selected'), () => {
+								const dice = dojo.query('.SSdiceUnit.SSselected', container).reduce((L, node) => [...L, +node.dataset.id], []);
+								if (dice.length > 0) this.bgaPerformAction('actDivineGraceNatureSpirits', {type: 're-roll', dice: JSON.stringify(dice)});
+								else this.showMessage('Select at least one die');
+							}, null, false, 'red');
+							this.addActionButton('SSsubstract', _('-1 selected'), () => {
+								const dice = dojo.query('.SSdiceUnit.SSselected', container).reduce((L, node) => [...L, +node.dataset.id], []);
+								if (dice.length === 1) this.bgaPerformAction('actDivineGraceNatureSpirits', {type: '-1', dice: JSON.stringify(dice)});
+								else this.showMessage('Select only one die');
+							}, null, false, 'red');
+							this.addActionButton('SSpass', _('Do nothing'), () => this.bgaPerformAction('actDivineGraceNatureSpirits', {type: 'pass'}));
 						}
 						break;
 //
@@ -855,10 +935,12 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			{
 				args.processed = true;
 //
+				if ('FATE' in args)
+					args.FATE = `<div class='SScard SSfate' data-id='${args.FATE}' style='margin:auto;width:50%;background-position-x:${args.FATE / 53 * 100}%'></div>`;
 				if ('EVENTS' in args)
 					args.EVENTS = `<div style='display:flex'>
-<div class='SScard' data-id='${args.EVENTS[0]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[0] / 53 * 100}%'></div>
-<div class='SScard' data-id='${args.EVENTS[1]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[1] / 53 * 100}%'></div>
+<div class='SScard SSevent' data-id='${args.EVENTS[0]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[0] / 53 * 100}%'></div>
+<div class='SScard SSevent' data-id='${args.EVENTS[1]}' style='flex:1 1 auto;background-position-x:${args.EVENTS[1] / 53 * 100}%'></div>
 </div>
 `;
 				if ('BAG' in args)
@@ -885,14 +967,14 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 			});
 //
 		},
-		hand: function (hand)
+		hand: function (faction, hand)
 		{
-			console.log('hand', hand);
+			console.log('hand', faction, hand);
 //
 			for (let i = 0; i < hand.length; i++)
 			{
-				let  node = $(`SScard-${i}`);
-				if (!node) node = dojo.place(`<div id='SScard-${i}' tabindex='0' class='SScard' data-id='${hand[i]}'></div>`, 'SShand');
+				let  node = $(`SScard-${hand[i]}`);
+				if (!node) node = dojo.place(`<div id='SScard-${hand[i]}' tabindex='0' class='SScard SSevent' data-id='${hand[i]}' data-faction='${faction}'></div>`, `SShand-${faction}`);
 				dojo.setStyle(node, 'background-position-x', `${hand[i] / 53 * 100}%`);
 			}
 		},
