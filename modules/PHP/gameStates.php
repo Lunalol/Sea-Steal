@@ -134,7 +134,7 @@ trait gameStates
 //
 		$this->globals->set('counter', 0);
 		$this->globals->set('faction', Factions::SPANISH);
-		$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer(Factions::SPANISH));
+		$this->gamestate->changeActivePlayer(Factions::getPlayer(Factions::SPANISH));
 //
 		$this->gamestate->nextState('startOfGame');
 	}
@@ -178,12 +178,19 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 		self::notifyAllPlayers('updateTurn', '<span class="SSphase">${LOG} ${turn}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('End of turn'), 'turn' => $turn]);
 //* -------------------------------------------------------------------------------------------------------- */
-		$this->gamestate->nextState('startOfRound');
+		if ($turn === 6)
+		{
+//* -------------------------------------------------------------------------------------------------------- */
+			self::notifyAllPlayers('msg', 'End of Game not implemented', []);
+//* -------------------------------------------------------------------------------------------------------- */
+			$this->gamestate->nextState('gameEnd');
+		}
+		else $this->gamestate->nextState('startOfRound');
 	}
 	function stFatePhase()
 	{
 //* -------------------------------------------------------------------------------------------------------- */
-		self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Fate phase')]);
+		self::notifyAllPlayers('msg', '<span class = "SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Fate phase')]);
 //* -------------------------------------------------------------------------------------------------------- */
 		$fateCards = $this->globals->get('fateCards');
 		self::setGameStateValue('fate', $fate = array_pop($fateCards));
@@ -208,7 +215,7 @@ trait gameStates
 				{
 					$roll = bga_rand(1, 6);
 //* -------------------------------------------------------------------------------------------------------- */
-					self::notifyAllPlayers('fate', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getActivePlayerName(), 'DICE' => $roll]);
+					self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getActivePlayerName(), 'DICE' => $roll]);
 //* -------------------------------------------------------------------------------------------------------- */
 					$location = $this->CARDS[$fate]['landingArea'][$roll - 1];
 					$this->globals->set('activeArea', $location);
@@ -261,7 +268,7 @@ trait gameStates
 		if ($turn !== 1)
 		{
 //* -------------------------------------------------------------------------------------------------------- */
-			self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Event phase')]);
+			self::notifyAllPlayers('msg', '<span class = "SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Event phase')]);
 //* -------------------------------------------------------------------------------------------------------- */
 			$this->globals->set('state', 'eventCombatPhase');
 //
@@ -283,7 +290,7 @@ trait gameStates
 				$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer($faction));
 				self::giveExtraTime($player_id);
 //* -------------------------------------------------------------------------------------------------------- */
-//				self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => $this->CARDS[$card]['title']]);
+//				self::notifyAllPlayers('msg', '<span class = "SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => $this->CARDS[$card]['title']]);
 //* -------------------------------------------------------------------------------------------------------- */
 				$reinforcement = self::eventReinforcement($card);
 //
@@ -324,7 +331,7 @@ trait gameStates
 		if (intval(self::getGameStateValue('turn')) !== 1)
 		{
 //* -------------------------------------------------------------------------------------------------------- */
-			self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Recovery phase')]);
+			self::notifyAllPlayers('msg', '<span class = "SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Recovery phase')]);
 //* -------------------------------------------------------------------------------------------------------- */
 			$this->globals->set('state', 'reinforcementCombatPhase');
 //
@@ -375,7 +382,7 @@ trait gameStates
 		if (intval(self::getGameStateValue('turn')) !== 1)
 		{
 //* -------------------------------------------------------------------------------------------------------- */
-			self::notifyAllPlayers('msg', '<span class="SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Impulse phase')]);
+			self::notifyAllPlayers('msg', '<span class = "SSsubphase">${LOG}</span>', ['i18n' => ['LOG'], 'LOG' => clienttranslate('Impulse phase')]);
 //* -------------------------------------------------------------------------------------------------------- */
 		}
 //
@@ -389,7 +396,8 @@ trait gameStates
 	{
 		if (intval(self::getGameStateValue('turn')) !== 1)
 		{
-			$this->globals->set('faction', Factions::other($this->globals->get('faction')));
+			$this->globals->set('faction', $faction = Factions::other($this->globals->get('faction')));
+			$this->gamestate->changeActivePlayer(Factions::getPlayer($faction));
 			$this->gamestate->nextState('action');
 		}
 		else
@@ -411,7 +419,7 @@ trait gameStates
 	{
 		$player_id = Factions::getPlayer($faction = $this->globals->get('faction'));
 //* -------------------------------------------------------------------------------------------------------- */
-		self::notifyAllPlayers('msg', '<span class="SSimpulse">${faction} <span>${LOG}</span></span>', ['i18n' => ['LOG'], 'LOG' => ['log' => clienttranslate('${player_name}\'s turn'), 'args' => ['player_name' => self::getCurrentPlayerName()]], 'faction' => $faction]);
+		self::notifyAllPlayers('msg', '<span class = "SSimpulse">${faction} <span>${LOG}</span></span>', ['i18n' => ['LOG'], 'LOG' => ['log' => clienttranslate('${player_name}\'s turn'), 'args' => ['player_name' => self::getPlayerNameById($player_id)]], 'faction' => $faction]);
 //* -------------------------------------------------------------------------------------------------------- */
 		self::giveExtraTime($player_id);
 	}
@@ -459,7 +467,7 @@ trait gameStates
 	{
 		['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
 //
-		$this->gamestate->changeActivePlayer(Factions::getPlayer($faction));
+		$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer($faction));
 //
 		if (++$attempts > 3 || sizeof(Units::getAtLocation($to)) === 0)
 		{
@@ -489,9 +497,9 @@ trait gameStates
 			}
 		}
 //* -------------------------------------------------------------------------------------------------------- */
-		if ($modifier > 0) self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls (+${modifier}) ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $roll, 'modifier' => $modifier]);
-		elseif ($modifier < 0) self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls (-${modifier}) ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $roll, 'modifier' => -$modifier]);
-		else self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getCurrentPlayerName(), 'DICE' => $roll]);
+		if ($modifier > 0) self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls (+${modifier}) ${DICE}'), ['player_name' => self::getPlayerNameById($player_id), 'DICE' => $roll, 'modifier' => $modifier]);
+		elseif ($modifier < 0) self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls (-${modifier}) ${DICE}'), ['player_name' => self::getPlayerNameById($player_id), 'DICE' => $roll, 'modifier' => -$modifier]);
+		else self::notifyAllPlayers('msg', clienttranslate('${player_name} rolls ${DICE}'), ['player_name' => self::getPlayerNameById($player_id), 'DICE' => $roll]);
 //* -------------------------------------------------------------------------------------------------------- */
 		$this->globals->set('incursion', ['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts]);
 //
@@ -504,6 +512,8 @@ trait gameStates
 	function stIncursionResolve()
 	{
 		['attacker' => $faction, 'from' => $from, 'to' => $to, 'attempts' => $attempts] = $this->globals->get('incursion');
+//
+		$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer($faction));
 //
 		$modifier = 0;
 		if (Counters::getAtLocation($to, 'citadels')) $modifier += 1;
@@ -529,13 +539,15 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction loses one of their units with the highest Attack Factor.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
-					self::activeNextPlayer();
+					$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer(Factions::other($faction)));
+					self::giveExtraTime($player_id);
 					break;
 				case 3:
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction reduces one of their units with the highest Attack Factor by one level.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
-					self::activeNextPlayer();
+					$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer(Factions::other($faction)));
+					self::giveExtraTime($player_id);
 					break;
 				case 4:
 				case 5:
@@ -548,6 +560,7 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect on the defender, but the attacking player is affected. One unit with the highest Attack Factor is reduced by one level, and the Impulse ends. If all units are on their reduced sides, eliminate the unit with the highest combat factor.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
+					self::giveExtraTime($player_id);
 					break;
 			}
 		}
@@ -560,24 +573,28 @@ trait gameStates
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction loses one of their units with the highest Attack Factor.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
-					self::activeNextPlayer();
+					$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer(Factions::other($faction)));
+					self::giveExtraTime($player_id);
 					break;
 				case 3:
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The defending faction reduces one of their units with the highest Attack Factor by one level.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
-					self::activeNextPlayer();
+					$this->gamestate->changeActivePlayer($player_id = Factions::getPlayer(Factions::other($faction)));
+					self::giveExtraTime($player_id);
 					break;
 				case 4:
 				case 5:
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect on the defender, but the attacking unit (from the active faction) with the highest Attack Factor is reduced by one level, and the Impulse ends.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
+					self::giveExtraTime($player_id);
 					break;
 				case 6:
 //* -------------------------------------------------------------------------------------------------------- */
 					self::notifyAllPlayers('msg', clienttranslate('<I>The Incursion attempt has no effect on the defender, but the attacking player is affected. One unit with the highest Attack Factor is eliminated, and the Impulse ends. If all units are on their reduced sides, eliminate the unit with the highest combat factor.factor.</I>'), []);
 //* -------------------------------------------------------------------------------------------------------- */
+					self::giveExtraTime($player_id);
 					break;
 			}
 		}

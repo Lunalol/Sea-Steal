@@ -26,7 +26,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 //
 // Card tooltips
 //
-			new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard.SSevent", showDelay: 1000, hideDelay: 0, getContent: (node) =>
+			this.eventTooltips = new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard.SSevent", showDelay: 1000, hideDelay: 0, getContent: (node) =>
 				{
 					let html = '';
 					if (node.dataset.id in gamedatas.CARDS)
@@ -45,7 +45,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 					}
 					return html;
 				}});
-			new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard.SSfate", showDelay: 1000, hideDelay: 0, getContent: (node) =>
+			this.fateTooltips = new dijit.Tooltip({connectId: "ebd-body", selector: ".SScard.SSfate", showDelay: 1000, hideDelay: 0, getContent: (node) =>
 				{
 					let html = '';
 					if (node.dataset.id in gamedatas.CARDS)
@@ -643,7 +643,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 									{
 										dojo.toggleClass(node, 'SSselected');
 										this.movement.show(!dojo.hasClass('SSshipsWear', 'SSdisabled'));
-										if (scribe)
+										if (scribe && attestors.length > 0)
 										{
 											const scribes = dojo.query(`.SSunit.SSselected[data-type='Scribes']`, 'SSunitContainer');
 											if (scribes.length === 1 && +scribes[0].dataset.location === args.location)
@@ -848,8 +848,8 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 							this.addActionButton('SSdone', _('Confirm retreat'), (event) => {
 								dojo.stopEvent(event);
 								const units = this.movement.result();
-								if (dojo.query(`.SSunit[data-faction='${args.faction}'][data-location='${args.location}']:not([data-type='Leader'])`, 'SSboard').length > 3)
-									return this.showMessage(_('Overstacking'), 'info');
+//								if (dojo.query(`.SSunit[data-faction='${args.faction}'][data-location='${args.location}']:not([data-type='Leader'])`, 'SSboard').length > 3)
+//									return this.showMessage(_('Overstacking'), 'info');
 								if (this.overstacking(Object.keys(units))) return this.showMessage(_('Overstacking'), 'info');
 								this.bgaPerformAction('actRetreat', {faction: args.faction, units: JSON.stringify(units), shipsWear: JSON.stringify(this.movement.navalDifficulties)});
 							}, null, false, 'red');
@@ -1031,13 +1031,12 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter",
 		},
 		overstacking: function (units)
 		{
-			let overStacking = false;
 			for (let ID of units)
 			{
 				const unit = $(`SSunit-${ID}`);
-				if (dojo.query(`.SSunit[data-faction='${unit.dataset.faction}'][data-location='${unit.dataset.location}']:not([data-type='Leader'])`, 'SSboard').length > 3) overStacking = true;
+				if (dojo.query(`.SSunit[data-faction='${unit.dataset.faction}'][data-location='${unit.dataset.location}']:not([data-type='Leader'])`, 'SSboard').length > 3) return true;
 			}
-			return overStacking;
+			return false;
 		},
 		placeCounter: function (counter)
 		{

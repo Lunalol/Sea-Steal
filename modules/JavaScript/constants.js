@@ -21,7 +21,7 @@ const BOARD = {
 	13: [40.7, 9],
 	14: [51.2, 8],
 	15: [59, 27.6],
-	prisonInSpain: [92.0, 41.5],
+	prisonInSpain: [94.5, 36.5],
 	shipsWear: [80.0, 33.0]
 };
 const ATTESTOR = {

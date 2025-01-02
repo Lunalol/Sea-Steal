@@ -32,7 +32,7 @@ $machinestates = [
 		"name" => "endOfRound",
 		"type" => "game",
 		"action" => "stEndOfRound",
-		"transitions" => ["startOfRound" => 20]
+		"transitions" => ["startOfRound" => 20, "gameEnd" => 99]
 	],
 	99 => [
 		"name" => "gameEnd",
